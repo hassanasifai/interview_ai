@@ -1,0 +1,456 @@
+/* =========================================================================
+   Integrations page — redesigned.
+   Branded provider cards, glowing status, polished webhook form.
+   Tokens from src/index.css. Respects prefers-reduced-motion.
+   ========================================================================= */
+
+/* ── Root ──────────────────────────────────────────────────────────────── */
+
+.int-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-height: 100%;
+  padding: var(--space-6);
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+
+.int-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.int-head__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.int-head__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-violet));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.int-head__title {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.int-head__sub {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  max-width: 620px;
+  line-height: 1.65;
+}
+
+/* ── Section labels ────────────────────────────────────────────────────── */
+
+.int-section-label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.int-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+/* ── Provider grid ─────────────────────────────────────────────────────── */
+
+.int-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ── Card ──────────────────────────────────────────────────────────────── */
+
+.int-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: hidden;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-std);
+}
+
+.int-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 0% 0%, rgba(255, 255, 255, 0.04), transparent 60%);
+  pointer-events: none;
+}
+
+.int-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Card head ─────────────────────────────────────────────────────────── */
+
+.int-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.int-card__title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.int-card__title {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.int-card__subtitle {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Meta row ──────────────────────────────────────────────────────────── */
+
+.int-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+
+.int-card__last-check {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ── Token label area ──────────────────────────────────────────────────── */
+
+.int-card__token {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px solid var(--border-subtle);
+}
+
+.int-card__token-label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* ── Card actions ──────────────────────────────────────────────────────── */
+
+.int-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: auto;
+}
+
+.int-card__note {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Logo badge ────────────────────────────────────────────────────────── */
+
+.int-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: -0.04em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.int-logo::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), transparent);
+  pointer-events: none;
+}
+
+.int-logo[data-brand='zoom'] {
+  background: #2d8cff;
+}
+.int-logo[data-brand='google'] {
+  background: linear-gradient(135deg, #4285f4 0%, #34a853 50%, #fbbc05 100%);
+}
+.int-logo[data-brand='teams'] {
+  background: #5059c9;
+}
+.int-logo[data-brand='slack'] {
+  background: #4a154b;
+}
+.int-logo[data-brand='webex'] {
+  background: #00bceb;
+}
+.int-logo[data-brand='groq'] {
+  background: linear-gradient(135deg, #f55036, #ff7043);
+}
+.int-logo[data-brand='openai'] {
+  background: linear-gradient(135deg, #10a37f, #19c47a);
+}
+.int-logo[data-brand='anthropic'] {
+  background: linear-gradient(135deg, #c96a2e, #e08a4f);
+}
+.int-logo[data-brand='whisper'] {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+.int-logo[data-brand='audio'] {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+.int-logo[data-brand='screen'] {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+}
+.int-logo[data-brand='key'] {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+/* ── "Coming soon" overlay ─────────────────────────────────────────────── */
+
+.int-soon-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 14, 20, 0.4), rgba(11, 14, 20, 0.75));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.int-soon-overlay__badge {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+/* ── Meetings list ─────────────────────────────────────────────────────── */
+
+.int-meetings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.int-meetings__label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.int-meeting-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  transition:
+    background-color var(--dur-fast) var(--ease-std),
+    border-color var(--dur-fast) var(--ease-std);
+}
+
+.int-meeting-row:hover {
+  background: var(--surface-2);
+  border-color: var(--border-default);
+}
+
+.int-meeting-row__title {
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.int-meeting-row__meta {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* ── Webhook list ──────────────────────────────────────────────────────── */
+
+.int-webhook-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.int-webhook-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: var(--space-3);
+  transition: background-color var(--dur-fast) var(--ease-std);
+}
+
+.int-webhook-row__info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.int-webhook-row__url {
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.int-webhook-row__events {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+/* ── Webhook dialog form ───────────────────────────────────────────────── */
+
+.int-webhook-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.int-webhook-events-label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.int-webhook-events {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.int-webhook-event-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  transition:
+    background-color var(--dur-fast) var(--ease-std),
+    border-color var(--dur-fast) var(--ease-std);
+}
+
+.int-webhook-event-check:hover {
+  background: var(--surface-2);
+  border-color: var(--border-default);
+}
+
+.int-webhook-event-check input[type='checkbox'] {
+  accent-color: var(--accent-gold);
+}
+
+/* ── Daemon toggle ─────────────────────────────────────────────────────── */
+
+.int-daemon-toggle {
+  align-self: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .int-card,
+  .int-meeting-row,
+  .int-webhook-event-check {
+    transition: none;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "pricing-strategy",
+    "title": "Product pricing strategy",
+    "passage": "Enterprise pricing should be explained in terms of seat bands, support tier, rollout scope, and optional onboarding. Avoid quoting final discounts unless the account owner has approved them."
+  },
+  {
+    "id": "security-review",
+    "title": "Security review guidance",
+    "passage": "For customer security questions, describe data residency, access controls, audit logging, and retention policy at a high level. Offer to follow up with the approved security packet."
+  }
+]

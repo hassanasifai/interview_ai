@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /d/presentation/src/**/*.ts /d/presentation/src/**/*.tsx /d/presentation/src-tauri/src/**/*.rs)",
+      "Bash(find:*)",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npx @tauri-apps/cli build --no-bundle)",
+      "Bash(cargo check:*)",
+      "Bash(npm test:*)",
+      "Bash(ls D:/presentation/.env*)",
+      "Bash(ls D:/presentation/src-tauri/.env*)",
+      "Bash(npx @tauri-apps/cli dev)",
+      "Bash(xargs grep:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(pkill -f \"tauri\")",
+      "Bash(pkill -f \"cargo run\")",
+      "Bash(tasklist /fi \"imagename eq cargo.exe\")"
+    ]
+  }
+}

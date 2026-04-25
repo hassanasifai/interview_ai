@@ -1,0 +1,221 @@
+/* mock.css — supplemental styles for MockInterviewPage (beyond mockInterview.css) */
+
+.mi-field-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin: 0 0 var(--space-2);
+}
+
+.mi-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.mi-preview-card {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: border-color var(--dur-2) var(--ease-out);
+}
+
+.mi-preview-card:hover {
+  border-color: color-mix(in oklab, var(--accent-gold) 30%, transparent);
+}
+
+.mi-preview-q {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Live grid */
+.mi-live-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .mi-live-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mi-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  margin: 0;
+}
+
+/* Top bar dots */
+.mi-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mi-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  transition: background var(--dur-2) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.mi-dot--active {
+  background: var(--accent-gold);
+  box-shadow: 0 0 8px color-mix(in oklab, var(--accent-gold) 50%, transparent);
+}
+
+.mi-dot--done {
+  background: var(--ok);
+}
+
+.mi-timer-btns {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* Score gauge */
+.mi-gauge {
+  --gauge-pct: 0;
+  --gauge-color: var(--accent-gold);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: conic-gradient(var(--gauge-color) calc(var(--gauge-pct) * 1%), var(--surface-3) 0);
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mi-gauge::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--surface-1);
+}
+
+.mi-gauge-inner {
+  position: relative;
+  text-align: center;
+  line-height: 1;
+}
+
+.mi-gauge-value {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+  display: block;
+}
+
+.mi-gauge-unit {
+  font-size: 9px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Completion */
+.mi-completion-gauge-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  margin: var(--space-5) 0 var(--space-6);
+}
+
+.mi-completion-stats {
+  display: flex;
+  gap: var(--space-5);
+}
+
+/* Scorecards */
+.mi-scorecard {
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.mi-scorecard-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.mi-scorecard-meta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.mi-scorecard-q {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.mi-scorecard-star {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.mi-scorecard-answer {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mi-scorecard-text {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.mi-scorecard-improve {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Submit state */
+.mi-check-icon {
+  color: var(--ok);
+  flex-shrink: 0;
+}
+
+.mi-submitted-label {
+  font-size: var(--fs-sm);
+  color: var(--ok);
+  font-weight: 500;
+}

@@ -1,0 +1,549 @@
+/* resume.css — supplemental styles for ResumeBuilderPage */
+
+/* ─── Section tab strip ─────────────────────────────────────────────────── */
+
+.rb-section-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.rb-section-tab {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-std),
+    color var(--dur-base) var(--ease-std),
+    box-shadow var(--dur-base) var(--ease-std);
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.rb-section-tab--active {
+  background: var(--surface-3);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.rb-section-tab:hover:not(.rb-section-tab--active) {
+  background: color-mix(in oklab, var(--surface-3) 60%, transparent);
+  color: var(--text-primary);
+}
+
+.rb-section-tab:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* ─── Field label ───────────────────────────────────────────────────────── */
+
+.rb-field-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: var(--space-2) 0 var(--space-1);
+}
+
+/* ─── Drag handle ───────────────────────────────────────────────────────── */
+
+.rb-drag-handle {
+  color: var(--text-tertiary);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: var(--space-1);
+  border-radius: var(--radius-xs);
+  transition:
+    color var(--dur-base) var(--ease-std),
+    background var(--dur-base) var(--ease-std);
+  flex-shrink: 0;
+}
+
+.rb-drag-handle:hover {
+  color: var(--text-secondary);
+  background: var(--surface-3);
+}
+
+.rb-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* ─── Entry card dragging state ─────────────────────────────────────────── */
+
+.rb-entry-card--dragging {
+  opacity: 0.5;
+  outline: 2px dashed color-mix(in oklab, var(--accent-gold) 55%, transparent);
+  outline-offset: 3px;
+  box-shadow: var(--shadow-glow-gold);
+}
+
+/* drag-over target highlight */
+.rb-entry-card[data-drag-over='true'] {
+  border-color: color-mix(in oklab, var(--accent-gold) 60%, transparent);
+  background: color-mix(in oklab, var(--accent-gold) 4%, var(--surface-2));
+}
+
+/* ─── Bullet row ────────────────────────────────────────────────────────── */
+
+.rb-bullet-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.rb-bullet-row:focus-within .rb-bullet-actions {
+  opacity: 1;
+}
+
+.rb-bullet-actions {
+  display: flex;
+  gap: 4px;
+  padding-top: 4px;
+  opacity: 0.45;
+  transition: opacity var(--dur-base) var(--ease-std);
+  flex-shrink: 0;
+}
+
+.rb-bullet-actions:hover {
+  opacity: 1;
+}
+
+/* ─── AI action buttons (per-bullet) ────────────────────────────────────── */
+
+.rb-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-std),
+    border-color var(--dur-fast) var(--ease-std),
+    color var(--dur-fast) var(--ease-std),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.rb-ai-btn:hover {
+  background: var(--surface-3);
+  border-color: color-mix(in oklab, var(--accent-gold) 40%, var(--border-subtle));
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.rb-ai-btn:active {
+  transform: translateY(0);
+}
+
+.rb-ai-btn:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+.rb-ai-btn--improve {
+  border-color: color-mix(in oklab, var(--accent-gold) 30%, transparent);
+}
+
+.rb-ai-btn--quantify {
+  border-color: color-mix(in oklab, var(--accent-blue) 30%, transparent);
+}
+
+.rb-ai-btn--shorten {
+  border-color: color-mix(in oklab, var(--accent-violet) 30%, transparent);
+}
+
+/* ─── Actions row (bottom of form col) ─────────────────────────────────── */
+
+.rb-actions-row {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ─── Layout scaffolding aliases (mirrors resumeBuilder.css names) ───────
+   These classes are referenced in the TSX but fully defined in
+   resumeBuilder.css. We add extra decoration here without overriding layout.
+──────────────────────────────────────────────────────────────────────────── */
+
+/* resume-page root — top-level scroll container */
+.resume-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  min-height: 100%;
+}
+
+/* Two-pane layout */
+.resume-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .resume-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Editor left pane */
+.resume-editor-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Preview right pane */
+.resume-preview-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ─── Resume section container ──────────────────────────────────────────── */
+
+.resume-section {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  transition: border-color var(--dur-base) var(--ease-std);
+}
+
+.resume-section:focus-within {
+  border-color: color-mix(in oklab, var(--accent-gold) 30%, var(--border-subtle));
+}
+
+/* Section header row */
+.resume-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.resume-section__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-primary);
+}
+
+.resume-section__title::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent-gold-hi), var(--accent-gold-lo));
+  flex-shrink: 0;
+}
+
+/* Drag handle for section reorder */
+.resume-section__drag-handle {
+  color: var(--text-tertiary);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: var(--space-1);
+  border-radius: var(--radius-xs);
+  transition:
+    color var(--dur-base) var(--ease-std),
+    background var(--dur-base) var(--ease-std);
+  flex-shrink: 0;
+}
+
+.resume-section__drag-handle:hover {
+  color: var(--text-secondary);
+  background: var(--surface-3);
+}
+
+.resume-section__drag-handle:active {
+  cursor: grabbing;
+}
+
+/* ─── Bullet rows ───────────────────────────────────────────────────────── */
+
+.resume-bullet {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.resume-bullet__input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* AI action buttons per-bullet */
+.resume-bullet__actions {
+  display: flex;
+  gap: 4px;
+  padding-top: 4px;
+  opacity: 0.4;
+  transition: opacity var(--dur-base) var(--ease-std);
+  flex-shrink: 0;
+}
+
+.resume-bullet:hover .resume-bullet__actions,
+.resume-bullet:focus-within .resume-bullet__actions {
+  opacity: 1;
+}
+
+/* ─── Live preview card ─────────────────────────────────────────────────── */
+
+/* Outer wrapper for sticky positioning + actions bar above */
+.resume-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: sticky;
+  top: var(--space-4);
+}
+
+/* Paper-like resume card (light background) */
+.resume-preview__header {
+  border-bottom: 1px solid #e3e3e3;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.resume-preview__name {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.resume-preview__contact {
+  font-size: 12px;
+  color: #555;
+  margin: 6px 0 0;
+}
+
+/* Section within preview paper */
+.resume-preview__section {
+  margin-bottom: 22px;
+}
+
+.resume-preview__section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #b8860b;
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #b8860b;
+  display: inline-block;
+}
+
+/* Entry block within experience section */
+.resume-preview__entry {
+  margin-bottom: 14px;
+}
+
+.resume-preview__entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.resume-preview__entry-role {
+  font-weight: 700;
+}
+
+.resume-preview__entry-company {
+  font-style: italic;
+  color: #555;
+  font-size: 13px;
+}
+
+/* Date range (right-aligned) */
+.resume-preview__dates {
+  font-size: 11px;
+  color: #555;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Export bar ────────────────────────────────────────────────────────── */
+
+.resume-export-bar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+}
+
+.resume-export-bar__label {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  flex: 1;
+}
+
+/* ─── Utility classes ───────────────────────────────────────────────────── */
+
+/* Generating shimmer on preview name */
+.rb-preview-name--generating {
+  background: linear-gradient(
+    90deg,
+    var(--text-primary) 0%,
+    var(--accent-gold) 40%,
+    var(--text-primary) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rb-shimmer 1.8s linear infinite;
+}
+
+@keyframes rb-shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+/* Focus ring utility (matches accent-gold ring) */
+.rb-focus-ring:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Generating skeleton overlay on preview pane */
+.rb-preview-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  animation: rb-pulse 1.4s ease-in-out infinite;
+}
+
+.rb-preview-skeleton__line {
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--surface-3) 50%,
+    var(--surface-2) 75%
+  );
+  background-size: 400% 100%;
+  animation: rb-skeleton-slide 1.6s ease-in-out infinite;
+}
+
+@keyframes rb-skeleton-slide {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ─── Responsive tweaks ─────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .resume-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-preview {
+    position: static;
+  }
+
+  .resume-bullet__actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .rb-section-tabs {
+    flex-wrap: wrap;
+  }
+
+  .rb-section-tab {
+    flex-basis: calc(50% - var(--space-1));
+  }
+
+  .resume-export-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ─── Print / PDF export styles ─────────────────────────────────────────── */
+
+@media print {
+  .resume-editor-pane,
+  .rb-form-col,
+  .rb-actions-row,
+  .resume-export-bar,
+  .rb-preview-actions {
+    display: none !important;
+  }
+
+  .resume-layout,
+  .rb-layout {
+    display: block;
+  }
+
+  .rb-preview-paper {
+    box-shadow: none;
+    border: none;
+    aspect-ratio: unset;
+    position: static;
+    padding: 0;
+  }
+}

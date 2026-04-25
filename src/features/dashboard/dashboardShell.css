@@ -1,0 +1,474 @@
+/* Dashboard shell — premium 3-zone layout */
+
+.ds-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--ds-sidebar-w, 260px) 1fr;
+  min-height: 100vh;
+  width: 100%;
+  color: var(--text-primary);
+  transition: grid-template-columns var(--dur-base) var(--ease-std);
+}
+
+.ds-shell--collapsed {
+  --ds-sidebar-w: 68px;
+}
+
+.ds-noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ─── Sidebar ───────────────────────────────────────────────────────── */
+
+.ds-sidebar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-3) var(--space-3);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--bg-1) 92%, transparent) 0%,
+    color-mix(in oklab, var(--bg-1) 78%, transparent) 100%
+  );
+  border-right: 1px solid var(--border-subtle);
+  backdrop-filter: blur(var(--blur-card));
+  -webkit-backdrop-filter: blur(var(--blur-card));
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.ds-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ds-brand__badge {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  color: #1a1305;
+  background: linear-gradient(135deg, var(--accent-gold-hi) 0%, #e88a2a 100%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--accent-gold) 40%, transparent),
+    var(--shadow-glow-gold);
+  flex-shrink: 0;
+}
+
+.ds-brand__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ds-brand__name {
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.ds-brand__sub {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── Nav groups ────────────────────────────────────────────────────── */
+
+.ds-nav {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-2) 0;
+  scrollbar-width: thin;
+}
+
+.ds-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ds-nav::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-pill);
+}
+
+.ds-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-nav-group__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.ds-nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background var(--dur-fast) var(--ease-std),
+    color var(--dur-fast) var(--ease-std),
+    transform var(--dur-fast) var(--ease-std);
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+
+.ds-nav-link:hover {
+  background: color-mix(in oklab, var(--surface-2) 80%, transparent);
+  color: var(--text-primary);
+}
+
+.ds-nav-link:hover .ds-nav-link__chev {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.ds-nav-link--active {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent-gold) 18%, transparent) 0%,
+    color-mix(in oklab, var(--accent-gold) 6%, transparent) 100%
+  );
+  border-color: color-mix(in oklab, var(--accent-gold) 22%, transparent);
+  color: var(--text-primary);
+}
+
+.ds-nav-link--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, var(--accent-gold-hi), var(--accent-gold));
+  box-shadow: 0 0 12px 0 color-mix(in oklab, var(--accent-gold) 60%, transparent);
+}
+
+.ds-nav-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: currentColor;
+}
+
+.ds-nav-link__label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-nav-link__chev {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--dur-fast) var(--ease-std),
+    transform var(--dur-fast) var(--ease-std);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.ds-shell--collapsed .ds-brand__text,
+.ds-shell--collapsed .ds-nav-link__label,
+.ds-shell--collapsed .ds-nav-link__chev,
+.ds-shell--collapsed .ds-nav-group__label,
+.ds-shell--collapsed .ds-session-card__body {
+  display: none;
+}
+
+.ds-shell--collapsed .ds-brand {
+  justify-content: center;
+  padding: 0 0 var(--space-3);
+}
+
+.ds-shell--collapsed .ds-nav-link {
+  justify-content: center;
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+}
+
+.ds-shell--collapsed .ds-nav-group {
+  align-items: center;
+}
+
+/* ─── Session status card ───────────────────────────────────────────── */
+
+.ds-session-card {
+  margin-top: auto;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--surface-2) 80%, transparent);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ds-session-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.ds-session-card__title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.ds-session-card__mode {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.ds-session-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ds-session-card__hint {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.ds-sidebar-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-2);
+}
+
+.ds-collapse-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-std),
+    color var(--dur-fast) var(--ease-std);
+}
+
+.ds-collapse-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.ds-shell--collapsed .ds-sidebar-foot {
+  justify-content: center;
+}
+
+/* ─── Main column ───────────────────────────────────────────────────── */
+
+.ds-main-col {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+}
+
+/* ─── Header ────────────────────────────────────────────────────────── */
+
+.ds-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 64px;
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(280px, 420px) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  background: color-mix(in oklab, var(--bg-0) 75%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
+}
+
+.ds-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ds-header-title__h {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-header-title__crumb {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.03em;
+}
+
+.ds-header-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 38px;
+  width: 100%;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-std),
+    border-color var(--dur-fast) var(--ease-std);
+}
+
+.ds-header-search:hover {
+  background: var(--surface-2);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+.ds-header-search__placeholder {
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.ds-header-search__kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--bg-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+}
+
+.ds-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: end;
+}
+
+.ds-header-alert {
+  margin: var(--space-3) var(--space-6) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--danger) 10%, var(--surface-1));
+  border: 1px solid color-mix(in oklab, var(--danger) 40%, var(--border-default));
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ds-header-alert strong {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ─── Main content ──────────────────────────────────────────────────── */
+
+.ds-main {
+  flex: 1 1 auto;
+  width: 100%;
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  justify-content: center;
+}
+
+.ds-main__inner {
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* ─── Reduced motion ────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-shell,
+  .ds-nav-link,
+  .ds-header-search,
+  .ds-collapse-btn {
+    transition: none;
+  }
+}
+
+/* ─── Small screens (graceful) ─────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .ds-header {
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+    padding: 0 var(--space-4);
+  }
+
+  .ds-header-search {
+    display: none;
+  }
+
+  .ds-main {
+    padding: var(--space-5) var(--space-4);
+  }
+}

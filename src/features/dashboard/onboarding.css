@@ -1,0 +1,290 @@
+/* Onboarding wizard — stepped first-run flow */
+
+.ob-container {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) 0 var(--space-10);
+}
+
+/* ─── Step indicator ────────────────────────────────────────────────── */
+
+.ob-steps-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+}
+
+.ob-step-dot {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--border-subtle);
+  transition: background var(--dur-base) var(--ease-std);
+}
+
+.ob-step-dot--done {
+  background: color-mix(in oklab, var(--accent-gold) 70%, transparent);
+}
+
+.ob-step-dot--current {
+  background: linear-gradient(90deg, var(--accent-gold-hi), var(--accent-gold));
+  box-shadow: 0 0 12px 0 color-mix(in oklab, var(--accent-gold) 40%, transparent);
+}
+
+.ob-step-count {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-left: var(--space-2);
+}
+
+/* ─── Step card ─────────────────────────────────────────────────────── */
+
+.ob-step-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ob-step-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.ob-step-number {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-sans);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: #1a1305;
+  background: linear-gradient(135deg, var(--accent-gold-hi) 0%, #e88a2a 100%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--accent-gold) 40%, transparent),
+    var(--shadow-glow-gold);
+  flex-shrink: 0;
+}
+
+.ob-step-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.ob-step-heading__title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.ob-step-heading__desc {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+/* ─── Hero step ─────────────────────────────────────────────────────── */
+
+.ob-hero-gradient {
+  position: relative;
+  padding: var(--space-8) var(--space-6);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  text-align: center;
+}
+
+.ob-hero-gradient::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(
+      40% 55% at 20% 30%,
+      color-mix(in oklab, var(--accent-gold) 30%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 60% at 80% 70%,
+      color-mix(in oklab, var(--accent-violet) 28%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      35% 45% at 50% 50%,
+      color-mix(in oklab, var(--accent-blue) 20%, transparent),
+      transparent 70%
+    );
+  filter: blur(20px);
+  opacity: 0.85;
+  animation: ob-hero-drift 18s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.ob-hero-gradient > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes ob-hero-drift {
+  0% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(4%, 2%, 0) scale(1.05);
+  }
+}
+
+.ob-hero-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  color: #1a1305;
+  background: linear-gradient(135deg, var(--accent-gold-hi) 0%, #e88a2a 100%);
+  box-shadow: var(--shadow-glow-gold);
+  margin: 0 auto var(--space-4);
+}
+
+.ob-hero-title {
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  background: linear-gradient(
+    120deg,
+    var(--text-primary) 0%,
+    var(--accent-gold-hi) 60%,
+    var(--text-primary) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0 0 var(--space-3);
+}
+
+.ob-hero-lede {
+  max-width: 520px;
+  margin: 0 auto var(--space-6);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.ob-hero-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+/* ─── Field stack ───────────────────────────────────────────────────── */
+
+.ob-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ob-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 600px) {
+  .ob-field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Disclosure box ────────────────────────────────────────────────── */
+
+.ob-disclosure-box {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.ob-disclosure-box__label {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-2);
+}
+
+.ob-toggle-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ─── CTA row ───────────────────────────────────────────────────────── */
+
+.ob-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-5);
+}
+
+.ob-cta-row--center {
+  justify-content: center;
+  border-top: none;
+  padding-top: 0;
+}
+
+.ob-cta-row__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ─── API key test state ────────────────────────────────────────────── */
+
+.ob-test-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* ─── Reduced motion ────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-hero-gradient::before {
+    animation: none;
+  }
+
+  .ob-step-dot {
+    transition: none;
+  }
+}

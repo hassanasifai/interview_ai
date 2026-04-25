@@ -1,0 +1,63 @@
+export type QuestionCategory = 'behavioral' | 'coding' | 'system-design' | 'hr';
+
+export const questionBank: Record<QuestionCategory, string[]> = {
+  behavioral: [
+    'Tell me about a time you handled a conflict with a coworker.',
+    'Describe your biggest professional failure and what you learned from it.',
+    'Give me an example of a time you showed leadership under pressure.',
+    'Tell me about a time you had to meet a tight deadline. How did you handle it?',
+    'Describe a situation where you had to work with a difficult stakeholder.',
+    'Tell me about a time you went above and beyond your job responsibilities.',
+    'Give an example of how you handled a major change at work.',
+    'Tell me about a time you had to make a difficult decision with limited information.',
+    'Describe a time you had to learn a new technology or skill quickly.',
+    'How have you handled receiving critical feedback from a manager?',
+    'Tell me about a project you initiated on your own.',
+    'Describe a time you had to persuade others to see your point of view.',
+  ],
+  coding: [
+    'What is the time and space complexity of merge sort?',
+    'Explain the difference between BFS and DFS. When would you use each?',
+    'What is dynamic programming? Give an example problem and solution.',
+    'Explain the two-pointer technique and when to apply it.',
+    'What is a hash map and what are its time complexity guarantees?',
+    'Explain the difference between a stack and a queue.',
+    'What is a binary search tree? How does insertion work?',
+    'Explain how you would detect a cycle in a linked list.',
+    'What is memoization and how does it differ from tabulation?',
+    'Given an array, find the two numbers that sum to a target. What is the optimal solution?',
+    'Explain quicksort and its average vs worst-case complexity.',
+    'What is a trie and when would you use one?',
+  ],
+  'system-design': [
+    'Design a URL shortener like bit.ly.',
+    "How would you design Twitter's news feed?",
+    'Design a distributed cache like Redis.',
+    'How would you design a rate limiter?',
+    'Design a file storage service like Dropbox.',
+    'How would you design a notification system?',
+    'Design a search autocomplete feature.',
+    'How would you design a ride-sharing service like Uber?',
+    'Design a distributed message queue like Kafka.',
+    'How would you design a content delivery network (CDN)?',
+  ],
+  hr: [
+    'Tell me about yourself.',
+    'Why do you want to work here?',
+    'Where do you see yourself in 5 years?',
+    'What are your greatest strengths?',
+    'What is your biggest weakness?',
+    'Why are you leaving your current role?',
+    'What motivates you in your work?',
+    'How do you handle stress and pressure?',
+    'What are your salary expectations?',
+    'Do you have any questions for us?',
+  ],
+};
+
+export const categoryLabels: Record<QuestionCategory, string> = {
+  behavioral: 'Behavioral (STAR)',
+  coding: 'Coding & Algorithms',
+  'system-design': 'System Design',
+  hr: 'HR & Culture Fit',
+};

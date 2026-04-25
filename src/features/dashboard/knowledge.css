@@ -1,0 +1,350 @@
+/* =========================================================================
+   Knowledge Base — redesigned.
+   Glassmorphism cards, gradient drop zone, animated upload progress.
+   Tokens from src/index.css. Respects prefers-reduced-motion.
+   ========================================================================= */
+
+/* ── Root ──────────────────────────────────────────────────────────────── */
+
+.kb-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 100%;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+
+.kb-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-6) 0;
+}
+
+.kb-head__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-hi));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.kb-head__title {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.kb-head__sub {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  max-width: 640px;
+  line-height: 1.65;
+}
+
+/* ── Two-column layout ─────────────────────────────────────────────────── */
+
+.kb-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) 1fr;
+  gap: var(--space-5);
+  align-items: start;
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+@media (max-width: 960px) {
+  .kb-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kb-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Drop zone ─────────────────────────────────────────────────────────── */
+
+.kb-drop-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-4);
+  border: 1.5px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(244, 180, 108, 0.05) 0%, transparent 60%),
+    var(--surface-1);
+  color: var(--text-secondary);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-base) var(--ease-std),
+    background-color var(--dur-base) var(--ease-std),
+    box-shadow var(--dur-base) var(--ease-std),
+    transform var(--dur-base) var(--ease-out);
+  overflow: hidden;
+}
+
+.kb-drop-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 110%, rgba(244, 180, 108, 0.08) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-std);
+  pointer-events: none;
+}
+
+.kb-drop-zone:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 1px rgba(244, 180, 108, 0.12) inset;
+  transform: translateY(-1px);
+}
+
+.kb-drop-zone:hover::before {
+  opacity: 1;
+}
+
+.kb-drop-zone[data-dragover='true'] {
+  border-color: var(--accent-gold);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(244, 180, 108, 0.14) 0%, transparent 60%),
+    rgba(244, 180, 108, 0.04);
+  box-shadow:
+    var(--shadow-glow-gold),
+    0 0 0 1px rgba(244, 180, 108, 0.25) inset;
+  transform: translateY(-2px) scale(1.005);
+}
+
+.kb-drop-zone__icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(244, 180, 108, 0.18), rgba(244, 180, 108, 0.06));
+  border: 1px solid rgba(244, 180, 108, 0.2);
+  color: var(--accent-gold);
+  box-shadow: 0 4px 12px rgba(244, 180, 108, 0.12);
+}
+
+.kb-drop-zone__title {
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.kb-drop-zone__hint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.kb-hidden-input {
+  display: none;
+}
+
+/* ── Upload progress ───────────────────────────────────────────────────── */
+
+.kb-upload-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  animation: kb-fade-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes kb-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Source actions ────────────────────────────────────────────────────── */
+
+.kb-source-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-2);
+}
+
+/* ── Library toolbar ───────────────────────────────────────────────────── */
+
+.kb-library-toolbar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.kb-library-toolbar__search {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+/* ── Count label ───────────────────────────────────────────────────────── */
+
+.kb-library-count {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  padding: 0 var(--space-1);
+}
+
+/* ── Document list ─────────────────────────────────────────────────────── */
+
+.kb-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kb-doc-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  transition:
+    background-color var(--dur-fast) var(--ease-std),
+    border-color var(--dur-fast) var(--ease-std),
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-std);
+}
+
+.kb-doc-row:hover {
+  background: var(--surface-2);
+  border-color: var(--border-default);
+  transform: translateX(2px);
+  box-shadow: -2px 0 0 0 rgba(244, 180, 108, 0.4);
+}
+
+.kb-doc-row[data-disabled='true'] {
+  opacity: 0.45;
+  filter: grayscale(0.3);
+}
+
+/* ── Doc icon ──────────────────────────────────────────────────────────── */
+
+.kb-doc-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(244, 180, 108, 0.15), rgba(244, 180, 108, 0.04));
+  border: 1px solid rgba(244, 180, 108, 0.15);
+  color: var(--accent-gold);
+  flex-shrink: 0;
+}
+
+.kb-doc-icon[data-kind='url'] {
+  background: linear-gradient(135deg, rgba(144, 205, 244, 0.15), rgba(144, 205, 244, 0.04));
+  border-color: rgba(144, 205, 244, 0.15);
+  color: var(--accent-blue);
+}
+
+.kb-doc-icon[data-kind='text'] {
+  background: linear-gradient(135deg, rgba(183, 148, 244, 0.15), rgba(183, 148, 244, 0.04));
+  border-color: rgba(183, 148, 244, 0.15);
+  color: var(--accent-violet);
+}
+
+/* ── Doc meta ──────────────────────────────────────────────────────────── */
+
+.kb-doc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kb-doc-title {
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kb-doc-sub {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.kb-doc-actions {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+/* ── Preview dialog content ────────────────────────────────────────────── */
+
+.kb-preview-dialog__content {
+  max-height: 55vh;
+  overflow: auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-1);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+/* Scrollbar styling */
+.kb-preview-dialog__content::-webkit-scrollbar {
+  width: 6px;
+}
+.kb-preview-dialog__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kb-preview-dialog__content::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-pill);
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-drop-zone,
+  .kb-doc-row,
+  .kb-upload-progress {
+    transition: none;
+    animation: none;
+    transform: none !important;
+  }
+}

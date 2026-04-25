@@ -1,0 +1,269 @@
+/* Resume Builder redesign */
+
+.rb-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  min-height: 100%;
+}
+
+.rb-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rb-title {
+  font-size: var(--fs-4xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text-1);
+}
+
+.rb-subtitle {
+  color: var(--text-3);
+  max-width: 56ch;
+  margin: 0;
+}
+
+.rb-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .rb-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rb-form-col,
+.rb-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.rb-section-card {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.rb-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.rb-section-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-1);
+}
+
+.rb-section-title::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent-gold-hi), var(--accent-gold-lo));
+}
+
+.rb-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.rb-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.rb-entry-card {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: relative;
+  transition: border-color var(--dur-2) var(--ease-out);
+}
+
+.rb-entry-card:hover {
+  border-color: color-mix(in oklab, var(--accent-gold) 25%, var(--border-subtle));
+}
+
+.rb-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.rb-entry-title {
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+}
+
+.rb-bullet-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.rb-bullet-row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.rb-bullet-actions {
+  display: flex;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+/* Preview paper */
+.rb-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.rb-preview-paper {
+  --paper-fg: #1a1a1a;
+  --paper-muted: #555;
+  --paper-accent: #b8860b;
+  background: #fff;
+  color: var(--paper-fg);
+  border-radius: var(--radius-md);
+  padding: 48px 56px;
+  font-family: 'Charter', 'Georgia', 'Iowan Old Style', serif;
+  line-height: 1.45;
+  aspect-ratio: 1 / 1.33;
+  overflow: auto;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 8px 16px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: var(--space-4);
+}
+
+.rb-preview-name {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.rb-preview-contact {
+  font-size: 12px;
+  color: var(--paper-muted);
+  margin: 6px 0 20px;
+}
+
+.rb-preview-header {
+  border-bottom: 1px solid #e3e3e3;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.rb-preview-section {
+  margin-bottom: 22px;
+}
+
+.rb-preview-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--paper-accent);
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--paper-accent);
+  display: inline-block;
+}
+
+.rb-preview-entry {
+  margin-bottom: 14px;
+}
+
+.rb-preview-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.rb-preview-entry-role {
+  font-weight: 700;
+  color: var(--paper-fg);
+}
+
+.rb-preview-entry-company {
+  font-style: italic;
+  color: var(--paper-muted);
+}
+
+.rb-preview-entry-dates {
+  font-size: 11px;
+  color: var(--paper-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rb-preview-entry ul {
+  padding-left: 18px;
+  margin: 6px 0 0;
+}
+
+.rb-preview-entry li {
+  font-size: 12.5px;
+  margin-bottom: 3px;
+  color: var(--paper-fg);
+}
+
+.rb-preview-summary {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--paper-fg);
+}
+
+.rb-preview-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.rb-preview-skill {
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: #f5f0e1;
+  color: var(--paper-fg);
+}
+
+.rb-preview-placeholder {
+  color: #bbb;
+  font-style: italic;
+}

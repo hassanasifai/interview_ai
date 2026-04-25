@@ -1,0 +1,6 @@
+{
+  "session": "mockCustomerCall",
+  "expectedQuestionTypes": ["pricing", "technical", "objection"],
+  "expectedActionItems": ["I can send a phased rollout option and ROI breakdown after the call."],
+  "groundingHints": ["Pricing Guide.md", "Security Overview.md", "Objection Patterns.md"]
+}

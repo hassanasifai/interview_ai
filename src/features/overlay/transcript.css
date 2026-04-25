@@ -1,0 +1,140 @@
+/* ============================================================
+   transcript.css — Styles for TranscriptFeed
+   Uses design tokens from src/index.css only.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   Scroll container
+   ---------------------------------------------------------- */
+.transcript-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: 100%;
+  padding: var(--space-2) 0;
+  scroll-behavior: smooth;
+}
+
+.transcript-list::-webkit-scrollbar {
+  width: 4px;
+}
+.transcript-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.transcript-list::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-pill);
+}
+
+/* ----------------------------------------------------------
+   Individual turn row
+   ---------------------------------------------------------- */
+.transcript-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid transparent;
+  transition:
+    background var(--dur-base, 200ms) ease,
+    border-color var(--dur-base, 200ms) ease;
+}
+
+/* Alternate row tinting — even rows get subtle bg-1 wash */
+.transcript-item:nth-child(even) {
+  background: color-mix(in srgb, var(--bg-1) 40%, transparent);
+}
+
+/* ----------------------------------------------------------
+   Avatar — column 1, spans both rows
+   ---------------------------------------------------------- */
+.transcript-avatar {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* ----------------------------------------------------------
+   Speaker label — column 2, row 1
+   ---------------------------------------------------------- */
+.transcript-item__speaker {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  line-height: 1.3;
+}
+
+/* ----------------------------------------------------------
+   Timestamp chip — column 3, row 1
+   ---------------------------------------------------------- */
+.transcript-item__time {
+  grid-column: 3;
+  grid-row: 1;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted, var(--text-tertiary));
+  letter-spacing: 0.02em;
+  align-self: center;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--bg-1) 60%, transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
+}
+
+/* ----------------------------------------------------------
+   Body text — column 2-3, row 2
+   ---------------------------------------------------------- */
+.transcript-item__body {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* ----------------------------------------------------------
+   Most-recent turn — gold left-border pulse
+   ---------------------------------------------------------- */
+@keyframes transcript-pulse {
+  0%,
+  100% {
+    border-color: color-mix(in srgb, var(--accent-gold) 80%, transparent);
+    box-shadow: -2px 0 12px color-mix(in srgb, var(--accent-gold) 20%, transparent);
+  }
+  50% {
+    border-color: var(--accent-gold);
+    box-shadow: -2px 0 20px color-mix(in srgb, var(--accent-gold) 35%, transparent);
+  }
+}
+
+.transcript-item--live {
+  border-left-color: var(--accent-gold);
+  animation: transcript-pulse 1.8s ease-in-out infinite;
+}
+
+.transcript-item--live .transcript-item__speaker {
+  color: var(--text-secondary);
+}

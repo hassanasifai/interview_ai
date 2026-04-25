@@ -1,0 +1,91 @@
+/* ============================================================
+   chat.css — Polish layer for AIChatOverlay
+   Augments aiChat.css with border-accents, glassmorphism input,
+   send-button states, and per-message fade-in entrance.
+   Uses design tokens from src/index.css only.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   Per-message fade-in entrance (CSS only)
+   ---------------------------------------------------------- */
+@keyframes chat-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message {
+  animation: chat-msg-in 220ms var(--ease-std, ease-out) both;
+}
+
+/* ----------------------------------------------------------
+   User bubble — right-aligned, gold left-border accent
+   ---------------------------------------------------------- */
+.chat-bubble-user {
+  border-left: 3px solid var(--accent-gold);
+  background: color-mix(in srgb, var(--accent-gold) 10%, var(--surface-overlay));
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
+  box-shadow: var(--shadow-lg), var(--shadow-glow-gold);
+}
+
+/* ----------------------------------------------------------
+   Assistant bubble — left-aligned, violet left-border accent
+   ---------------------------------------------------------- */
+.chat-bubble-assistant {
+  border-left: 3px solid var(--accent-violet);
+  background: color-mix(in srgb, var(--accent-violet) 8%, var(--surface-overlay));
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
+  box-shadow: var(--shadow-lg);
+}
+
+/* ----------------------------------------------------------
+   Input area — glassmorphism background
+   ---------------------------------------------------------- */
+.chat-input-area {
+  background: color-mix(in srgb, var(--bg-1) 60%, transparent);
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Textarea focus ring using accent-gold */
+.chat-input-area textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-gold) 55%, transparent);
+  border-color: color-mix(in srgb, var(--accent-gold) 60%, transparent);
+}
+
+/* ----------------------------------------------------------
+   Send button — gold accent + disabled state
+   ---------------------------------------------------------- */
+.chat-input-area button[aria-label='Send message'] {
+  background: var(--accent-gold);
+  color: #1a1200;
+  border: none;
+  transition:
+    opacity var(--dur-base, 200ms) ease,
+    box-shadow var(--dur-base, 200ms) ease,
+    transform var(--dur-fast, 120ms) ease;
+}
+
+.chat-input-area button[aria-label='Send message']:not(:disabled):hover {
+  box-shadow: var(--shadow-glow-gold);
+  transform: scale(1.06);
+}
+
+.chat-input-area button[aria-label='Send message']:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.chat-input-area button[aria-label='Send message']:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}

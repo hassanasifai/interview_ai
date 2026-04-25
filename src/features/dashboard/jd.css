@@ -1,0 +1,679 @@
+/* jd.css — supplemental styles for JobDescriptionPage */
+
+/* ─── Card header row ───────────────────────────────────────────────────── */
+
+.jd-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.jd-card-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin: 0;
+  flex: 1;
+}
+
+/* ─── Fit hero (score card) ─────────────────────────────────────────────── */
+
+.jd-fit-hero {
+  --fit-color: var(--accent-gold);
+  --fit-pct: 0;
+}
+
+.jd-fit-circle {
+  --color: var(--fit-color);
+  --pct: var(--fit-pct);
+}
+
+.jd-fit-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  min-width: 220px;
+}
+
+/* ─── Bar rows (breakdown bars) ─────────────────────────────────────────── */
+
+.jd-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.jd-bar-label {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.jd-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.jd-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.65s var(--ease-out);
+}
+
+.jd-bar-fill--gold {
+  background: linear-gradient(90deg, var(--accent-gold-lo), var(--accent-gold));
+}
+
+.jd-bar-fill--blue {
+  background: linear-gradient(
+    90deg,
+    var(--accent-blue),
+    color-mix(in oklab, var(--accent-blue) 70%, var(--accent-violet))
+  );
+}
+
+.jd-bar-fill--ok {
+  background: var(--ok);
+}
+
+.jd-bar-pct {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ─── Preset list ───────────────────────────────────────────────────────── */
+
+.jd-preset-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.jd-preset-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out);
+}
+
+.jd-preset-item:hover {
+  border-color: color-mix(in oklab, var(--accent-gold) 30%, var(--border-subtle));
+}
+
+.jd-preset-item--active {
+  border-color: color-mix(in oklab, var(--accent-gold) 50%, transparent);
+  background: color-mix(in oklab, var(--accent-gold) 5%, var(--surface-2));
+}
+
+.jd-preset-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.jd-preset-btn:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.jd-preset-name {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.jd-preset-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* ─── Active hint banner ────────────────────────────────────────────────── */
+
+.jd-active-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--ok) 8%, var(--surface-2));
+  border: 1px solid color-mix(in oklab, var(--ok) 20%, transparent);
+  margin: 0;
+}
+
+/* ─── Page root ─────────────────────────────────────────────────────────── */
+
+.jd-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  min-height: 100%;
+}
+
+/* ─── Upload / paste zone ───────────────────────────────────────────────── */
+
+.jd-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--border-default);
+  background: var(--surface-1);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out);
+  text-align: center;
+}
+
+.jd-upload-zone:hover {
+  border-color: color-mix(in oklab, var(--accent-gold) 50%, var(--border-default));
+  background: color-mix(in oklab, var(--accent-gold) 4%, var(--surface-1));
+}
+
+.jd-upload-zone:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Drag-over active state */
+.jd-upload-zone--active {
+  border-color: var(--accent-gold);
+  background: color-mix(in oklab, var(--accent-gold) 8%, var(--surface-1));
+  box-shadow: var(--shadow-glow-gold);
+}
+
+.jd-upload-zone__icon {
+  color: var(--text-muted);
+  transition: color var(--dur-base) var(--ease-std);
+}
+
+.jd-upload-zone:hover .jd-upload-zone__icon,
+.jd-upload-zone--active .jd-upload-zone__icon {
+  color: var(--accent-gold);
+}
+
+.jd-upload-zone__heading {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.jd-upload-zone__sub {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ─── Tag groups ────────────────────────────────────────────────────────── */
+
+.jd-tag-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.jd-tag-group__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ─── Tag chips ─────────────────────────────────────────────────────────── */
+
+.jd-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: default;
+  transition:
+    border-color var(--dur-fast) var(--ease-std),
+    background var(--dur-fast) var(--ease-std),
+    transform var(--dur-fast) var(--ease-out);
+  user-select: none;
+}
+
+.jd-tag:hover {
+  border-color: color-mix(in oklab, var(--accent-gold) 40%, var(--border-subtle));
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+/* Variant: required skill */
+.jd-tag--required {
+  border-color: color-mix(in oklab, var(--accent-gold) 40%, transparent);
+  background: color-mix(in oklab, var(--accent-gold) 6%, var(--surface-2));
+  color: var(--accent-gold-hi);
+}
+
+/* Variant: nice-to-have */
+.jd-tag--nice {
+  border-color: color-mix(in oklab, var(--accent-blue) 35%, transparent);
+  background: color-mix(in oklab, var(--accent-blue) 5%, var(--surface-2));
+  color: var(--accent-blue);
+}
+
+/* Variant: keyword */
+.jd-tag--keyword {
+  border-color: color-mix(in oklab, var(--accent-violet) 30%, transparent);
+  background: color-mix(in oklab, var(--accent-violet) 5%, var(--surface-2));
+  color: var(--accent-violet);
+}
+
+/* ─── Match score hero ──────────────────────────────────────────────────── */
+
+.jd-match-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(
+      ellipse at top,
+      color-mix(in oklab, var(--accent-gold) 12%, transparent),
+      transparent 65%
+    ),
+    var(--surface-1);
+  border: 1px solid color-mix(in oklab, var(--accent-gold) 25%, var(--border-subtle));
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+/* Big score number */
+.jd-match-score__number {
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--accent-gold);
+  letter-spacing: -0.03em;
+  text-shadow: 0 0 24px color-mix(in oklab, var(--accent-gold) 40%, transparent);
+}
+
+.jd-match-score__number--high {
+  color: var(--ok);
+  text-shadow: 0 0 24px color-mix(in oklab, var(--ok) 40%, transparent);
+}
+
+.jd-match-score__number--mid {
+  color: var(--warn);
+  text-shadow: 0 0 24px color-mix(in oklab, var(--warn) 40%, transparent);
+}
+
+.jd-match-score__number--low {
+  color: var(--danger);
+  text-shadow: 0 0 24px color-mix(in oklab, var(--danger) 40%, transparent);
+}
+
+/* Label below the number */
+.jd-match-score__label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.jd-match-score__sub {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  max-width: 32ch;
+  margin-top: var(--space-1);
+}
+
+/* ─── Breakdown section ─────────────────────────────────────────────────── */
+
+.jd-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+}
+
+.jd-breakdown__title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.jd-breakdown__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.jd-breakdown__row-label {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+/* Bar track */
+.jd-breakdown__bar {
+  flex: 1;
+  height: 8px;
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Animated fill */
+.jd-breakdown__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.7s var(--ease-out);
+}
+
+.jd-breakdown__fill--gold {
+  background: linear-gradient(90deg, var(--accent-gold-lo), var(--accent-gold));
+}
+
+.jd-breakdown__fill--blue {
+  background: linear-gradient(
+    90deg,
+    var(--accent-blue),
+    color-mix(in oklab, var(--accent-blue) 70%, var(--accent-violet))
+  );
+}
+
+.jd-breakdown__fill--ok {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--ok) 80%, transparent), var(--ok));
+}
+
+.jd-breakdown__fill--warn {
+  background: var(--warn);
+}
+
+.jd-breakdown__fill--danger {
+  background: var(--danger);
+}
+
+.jd-breakdown__pct {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  min-width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ─── Cover letter area ─────────────────────────────────────────────────── */
+
+.jd-cover-letter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  transition: border-color var(--dur-base) var(--ease-std);
+}
+
+.jd-cover-letter:focus-within {
+  border-color: color-mix(in oklab, var(--accent-gold) 30%, var(--border-subtle));
+}
+
+.jd-cover-letter__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.jd-cover-letter__title {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin: 0;
+  flex: 1;
+}
+
+/* Streaming output area — monospace feel with typing cursor */
+.jd-cover-letter__stream {
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  min-height: 160px;
+  max-height: 360px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Blinking cursor at end of streaming text */
+.jd-cover-letter__stream--streaming::after {
+  content: '▋';
+  color: var(--accent-gold);
+  animation: jd-blink 0.9s step-end infinite;
+}
+
+@keyframes jd-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Token counter badge */
+.jd-cover-letter__word-count {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ─── Actions row (primary actions below JD input) ──────────────────────── */
+
+.jd-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.jd-actions--inline {
+  padding-top: 0;
+  border-top: none;
+}
+
+/* ─── Save preset button callout ────────────────────────────────────────── */
+
+.jd-save-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  border: 1px solid color-mix(in oklab, var(--accent-gold) 30%, var(--border-subtle));
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-std),
+    border-color var(--dur-base) var(--ease-std),
+    color var(--dur-base) var(--ease-std),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.jd-save-preset:hover {
+  background: color-mix(in oklab, var(--accent-gold) 8%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--accent-gold) 55%, transparent);
+  color: var(--accent-gold-hi);
+  transform: translateY(-1px);
+}
+
+.jd-save-preset:active {
+  transform: translateY(0);
+}
+
+.jd-save-preset:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* ─── Skill gap list ────────────────────────────────────────────────────── */
+
+.jd-gap-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.jd-gap-item {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border-left: 2px solid var(--warn);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+/* ─── Empty right-column placeholder ────────────────────────────────────── */
+
+.jd-empty-right {
+  padding: var(--space-8);
+  text-align: center;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-subtle);
+  background: var(--surface-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+/* ─── Keyword cloud ─────────────────────────────────────────────────────── */
+
+.jd-keyword-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-2) 0;
+}
+
+.jd-keyword {
+  font-size: calc(var(--fs-sm) + var(--weight, 0) * 4px);
+  font-weight: calc(400 + var(--weight, 0) * 100);
+  color: var(--text-primary);
+  opacity: calc(0.55 + var(--weight, 0) * 0.15);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-std);
+}
+
+.jd-keyword:hover {
+  transform: translateY(-1px);
+  color: var(--accent-gold);
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  .jd-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .jd-fit-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .jd-fit-bars {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .jd-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .jd-upload-zone {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .jd-match-score {
+    padding: var(--space-4);
+  }
+}

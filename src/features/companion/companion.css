@@ -1,0 +1,331 @@
+/* companion.css — compact 320×520 floating copilot window */
+
+/* ── Shell ────────────────────────────────────────────────────────────── */
+.cw-compact {
+  width: 320px;
+  min-height: 520px;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(
+      80% 60% at 10% 0%,
+      color-mix(in oklab, var(--accent-violet) 14%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      60% 80% at 100% 100%,
+      color-mix(in oklab, var(--accent-blue) 10%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  user-select: none;
+}
+
+/* ── Drag bar ─────────────────────────────────────────────────────────── */
+.cw-drag-bar {
+  height: 44px;
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  background: color-mix(in oklab, var(--bg-2) 80%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: default; /* drag region handles drag natively */
+  backdrop-filter: blur(var(--blur-card));
+  -webkit-backdrop-filter: blur(var(--blur-card));
+}
+
+.cw-drag-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cw-drag-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent-gold-hi), var(--accent-gold-lo));
+  display: grid;
+  place-items: center;
+  color: #111;
+  font-weight: 900;
+  font-size: 11px;
+  box-shadow: 0 2px 8px color-mix(in oklab, var(--accent-gold) 40%, transparent);
+  flex-shrink: 0;
+}
+
+.cw-drag-name {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.cw-drag-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cw-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background var(--dur-base) var(--ease-std);
+}
+
+.cw-mode-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+/* ── Shared zone styles ───────────────────────────────────────────────── */
+.cw-question-zone,
+.cw-answer-zone,
+.cw-transcript-zone,
+.cw-hotkeys {
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cw-zone-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ── Question zone ────────────────────────────────────────────────────── */
+.cw-question-text {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cw-question-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Answer zone ──────────────────────────────────────────────────────── */
+.cw-answer-zone {
+  flex: 1;
+  overflow: hidden auto;
+  min-height: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cw-one-liner {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.cw-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cw-bullet {
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in oklab, var(--accent-gold) 7%, var(--surface-2));
+  border-left: 2px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--text-primary);
+  animation: cw-slide-in var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes cw-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cw-followup {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  margin: var(--space-1) 0 0;
+  line-height: 1.45;
+}
+
+.cw-followup-label {
+  font-weight: 600;
+  color: var(--accent-gold);
+}
+
+.cw-answer-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Transcript zone ──────────────────────────────────────────────────── */
+.cw-transcript-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cw-transcript-item {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+.cw-transcript-who {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.cw-transcript-who[data-speaker='customer'] {
+  color: var(--accent-blue);
+}
+.cw-transcript-who[data-speaker='user'] {
+  color: var(--accent-gold);
+}
+.cw-transcript-who[data-speaker='system'] {
+  color: var(--text-tertiary);
+}
+
+.cw-transcript-line {
+  color: var(--text-secondary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── Hotkey legend ────────────────────────────────────────────────────── */
+.cw-hotkey-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+
+.cw-hotkey-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cw-hotkey-list kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* ── Quick-actions bar ────────────────────────────────────────────────── */
+.cw-actions-bar {
+  height: 44px;
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  background: color-mix(in oklab, var(--bg-2) 80%, transparent);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cw-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-tertiary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-std),
+    color var(--dur-base) var(--ease-std),
+    border-color var(--dur-base) var(--ease-std);
+}
+
+.cw-action-btn:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.cw-action-btn--active {
+  background: color-mix(in oklab, var(--accent-gold) 12%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--accent-gold) 40%, transparent);
+  color: var(--accent-gold);
+}
+
+.cw-action-btn--dismiss:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--danger) 12%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--danger) 40%, transparent);
+  color: var(--danger);
+}
+
+.cw-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cw-bullet {
+    animation: none;
+  }
+}
