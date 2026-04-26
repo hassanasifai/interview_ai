@@ -292,6 +292,7 @@ impl Drop for MicCapture {
 }
 
 /// Convert raw PCM bytes to mono i16 samples.
+#[cfg(target_os = "windows")]
 fn convert_to_mono_i16(raw: &[u8], channels: usize, bits_per_sample: u16) -> Vec<i16> {
     // Microphone format negotiation can report nChannels=0 in error/transition
     // states; guard before dividing or using as a stride to avoid panic.
@@ -342,6 +343,7 @@ fn convert_to_mono_i16(raw: &[u8], channels: usize, bits_per_sample: u16) -> Vec
 }
 
 /// Linear resampling from source_rate to target_rate.
+#[cfg(target_os = "windows")]
 fn resample(samples: &[i16], source_rate: u32, target_rate: u32) -> Vec<i16> {
     if source_rate == target_rate || samples.is_empty() {
         return samples.to_vec();

@@ -314,6 +314,7 @@ impl Drop for WasapiLoopbackCapture {
 }
 
 /// Convert raw PCM bytes to mono i16 samples.
+#[cfg(target_os = "windows")]
 fn convert_to_mono_i16(raw: &[u8], channels: usize, bits_per_sample: u16) -> Vec<i16> {
     // WASAPI in error/transition states can momentarily report nChannels=0;
     // guard before dividing or using as a stride to avoid div-by-zero panic.
@@ -375,6 +376,7 @@ fn convert_to_mono_i16(raw: &[u8], channels: usize, bits_per_sample: u16) -> Vec
 /// and a 31-tap kernel before linear interpolation. The cost is ~30 mul-adds
 /// per output sample, which is well under our ~1.5s buffering budget per
 /// chunk on the WASAPI thread.
+#[cfg(target_os = "windows")]
 fn resample(samples: &[i16], source_rate: u32, target_rate: u32) -> Vec<i16> {
     if source_rate == target_rate || samples.is_empty() {
         return samples.to_vec();
@@ -413,6 +415,7 @@ fn resample(samples: &[i16], source_rate: u32, target_rate: u32) -> Vec<i16> {
 
 /// Hann-windowed sinc low-pass filter kernel. `cutoff` is normalised to the
 /// source sample rate (0.0..=0.5).
+#[cfg(target_os = "windows")]
 fn build_lowpass_kernel(taps: usize, cutoff: f32) -> Vec<f32> {
     use std::f32::consts::PI;
     let mut k = vec![0f32; taps];
@@ -440,6 +443,7 @@ fn build_lowpass_kernel(taps: usize, cutoff: f32) -> Vec<f32> {
 }
 
 /// Direct-form FIR convolution. Input length is preserved (zero-pads at edges).
+#[cfg(target_os = "windows")]
 fn convolve(input: &[f32], kernel: &[f32]) -> Vec<f32> {
     if kernel.is_empty() {
         return input.to_vec();
