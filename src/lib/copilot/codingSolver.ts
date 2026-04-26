@@ -1,5 +1,6 @@
 import type { AIProvider } from '../providers/aiProvider';
 import type { CodingSolution } from '../../store/overlayStore';
+import { extractJson as sharedExtractJson, repairJson as sharedRepairJson } from './jsonRepair';
 
 const SYSTEM_PROMPT = `You are an expert competitive programmer and software engineer specializing in Python, AI/ML, and backend systems.
 Given a coding problem, produce a complete, correct, well-commented solution.
@@ -24,59 +25,23 @@ Rules:
 - For AI/ML problems, use scikit-learn, numpy, or pytorch as appropriate.
 - keyInsights must explain WHY the approach works, not just what it does.`;
 
-/** Extract JSON object from LLM response that may be wrapped in markdown fences. */
-function extractJson(raw: string): string {
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced?.[1]) return fenced[1].trim();
-  const brace = raw.match(/\{[\s\S]*\}/);
-  if (brace?.[0]) return brace[0];
-  return raw.trim();
-}
-
-/**
- * Repair common LLM JSON mistakes: unescaped newlines/tabs/quotes inside string values,
- * trailing commas, smart quotes. Walks the string char by char and tracks string state.
- */
-function repairJson(input: string): string {
-  let out = '';
-  let inString = false;
-  let escapeNext = false;
-  for (let i = 0; i < input.length; i++) {
-    const ch = input[i];
-    if (escapeNext) {
-      out += ch;
-      escapeNext = false;
-      continue;
-    }
-    if (ch === '\\') {
-      out += ch;
-      escapeNext = true;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      out += ch;
-      continue;
-    }
-    if (inString) {
-      // Inside a JSON string — escape raw control chars
-      if (ch === '\n') { out += '\\n'; continue; }
-      if (ch === '\r') { out += '\\r'; continue; }
-      if (ch === '\t') { out += '\\t'; continue; }
-    }
-    out += ch;
-  }
-  // Strip trailing commas before ] or }
-  out = out.replace(/,(\s*[}\]])/g, '$1');
-  // Replace smart quotes
-  out = out.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
-  return out;
-}
+// extractJson + repairJson live in ./jsonRepair so every answer engine shares
+// the same parsing/repair pipeline (AUDIT §24 recommendation).
+const extractJson = sharedExtractJson;
+const repairJson = sharedRepairJson;
 
 function tryParseJson(raw: string): Partial<CodingSolution> | null {
   const candidate = extractJson(raw);
-  try { return JSON.parse(candidate) as Partial<CodingSolution>; } catch { /* try repair */ }
-  try { return JSON.parse(repairJson(candidate)) as Partial<CodingSolution>; } catch { /* give up */ }
+  try {
+    return JSON.parse(candidate) as Partial<CodingSolution>;
+  } catch {
+    /* try repair */
+  }
+  try {
+    return JSON.parse(repairJson(candidate)) as Partial<CodingSolution>;
+  } catch {
+    /* give up */
+  }
   return null;
 }
 
@@ -133,7 +98,11 @@ export async function solveCodingProblem(
     approach: 'Parse error — see raw response in code panel',
     timeComplexity: 'Unknown',
     spaceComplexity: 'Unknown',
-    pseudocode: ['The AI response was not valid JSON', 'Try clicking Solve with AI again', 'Or rephrase the problem'],
+    pseudocode: [
+      'The AI response was not valid JSON',
+      'Try clicking Solve with AI again',
+      'Or rephrase the problem',
+    ],
     code: `# Raw AI response (could not parse as JSON):\n${raw.slice(0, 2000)}`,
     language: lang,
     keyInsights: ['Click Solve again — Groq sometimes returns malformed JSON on the first try'],

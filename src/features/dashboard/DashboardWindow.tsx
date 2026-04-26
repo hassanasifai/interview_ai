@@ -23,6 +23,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { NavLink, useLocation } from 'react-router-dom';
 import { AppRoutes } from '../../app/routes';
 import { logger } from '../../lib/logger';
+import { MissingApiKeyError } from '../../lib/providers/contracts';
 import { getRuntimeConfigHealth } from '../../lib/runtime/appConfig';
 import { useSessionStore } from '../../store/sessionStore';
 import {
@@ -146,7 +147,7 @@ export function DashboardWindow() {
 
   const sessionMode = useSessionStore((s) => s.mode);
   const isGenerating = useSessionStore((s) => s.isGenerating);
-  const startSession = useSessionStore((s) => s.startSession);
+  const startLiveCaptureSession = useSessionStore((s) => s.startLiveCaptureSession);
   const endSession = useSessionStore((s) => s.endSession);
   const toggleShortcutWithShareGuard = useSessionStore((s) => s.toggleShortcutWithShareGuard);
 
@@ -222,7 +223,16 @@ export function DashboardWindow() {
         keywords: ['begin', 'record'],
         icon: <Sparkles size={14} />,
         onSelect: () => {
-          startSession();
+          useSessionStore
+            .getState()
+            .startLiveCaptureSession(true)
+            .catch((err) => {
+              if (err instanceof MissingApiKeyError) {
+                // toast already fires from §5 listener; nothing to do
+                return;
+              }
+              logger.warn('dashboard', 'start live capture failed', { err: String(err) });
+            });
           toast.show({ title: 'Session starting', variant: 'info' });
         },
       },
@@ -274,7 +284,7 @@ export function DashboardWindow() {
     ];
 
     return [...navCommands, ...actions];
-  }, [startSession, endSession, toggleShortcutWithShareGuard, handleOpenOverlay, toast]);
+  }, [endSession, toggleShortcutWithShareGuard, handleOpenOverlay, toast]);
 
   const sessionIsRunning = sessionMode === 'running' || sessionMode === 'paused';
   const statusKind = sessionModeToStatus(sessionMode, isGenerating);
@@ -332,7 +342,13 @@ export function DashboardWindow() {
                 variant="primary"
                 size="sm"
                 onClick={() => {
-                  startSession();
+                  startLiveCaptureSession(true).catch((err) => {
+                    if (err instanceof MissingApiKeyError) {
+                      // toast already fires from §5 listener; nothing to do
+                      return;
+                    }
+                    logger.warn('dashboard', 'start live capture failed', { err: String(err) });
+                  });
                   toast.show({ title: 'Session starting', variant: 'info' });
                 }}
               >

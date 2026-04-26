@@ -293,6 +293,11 @@ impl Drop for MicCapture {
 
 /// Convert raw PCM bytes to mono i16 samples.
 fn convert_to_mono_i16(raw: &[u8], channels: usize, bits_per_sample: u16) -> Vec<i16> {
+    // Microphone format negotiation can report nChannels=0 in error/transition
+    // states; guard before dividing or using as a stride to avoid panic.
+    if channels == 0 {
+        return Vec::new();
+    }
     match bits_per_sample {
         16 => {
             let samples_per_channel = raw.len() / (channels * 2);

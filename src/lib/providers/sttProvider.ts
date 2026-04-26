@@ -1,7 +1,8 @@
 import { LocalSttProvider } from './localSttProvider';
+import { DeepgramSTTProvider } from './deepgramSttProvider';
 import { MissingApiKeyError } from './contracts';
 
-export { LocalSttProvider, MissingApiKeyError };
+export { LocalSttProvider, DeepgramSTTProvider, MissingApiKeyError };
 
 export interface STTProvider {
   transcribeChunk: (payload: {
@@ -34,17 +35,15 @@ export class MockSTTProvider implements STTProvider {
   }
 }
 
-/**
- * Module-level shared rate-limit gate. When Groq returns 429 with a
- * "try again in Ns" hint, we set a window during which all subsequent
- * STT requests short-circuit instead of hammering the API.
- */
-let _rateLimitedUntil = 0;
-
 export class GroqSTTProvider implements STTProvider {
   private readonly apiKey: string;
   private readonly model: string;
   private readonly defaultLanguage: string | undefined;
+  // LOW 17 fix: rate-limit window is per-instance now, not module-global.
+  // Two GroqSTTProvider instances (e.g. one for mic, one for system) used
+  // to share the cooldown — a 429 on one channel would silently mute the
+  // other. Now they back off independently.
+  private _rateLimitedUntil = 0;
 
   constructor(apiKey: string, language?: string, model = 'whisper-large-v3-turbo') {
     this.apiKey = apiKey;
@@ -64,7 +63,7 @@ export class GroqSTTProvider implements STTProvider {
 
     // Honor any active rate-limit window so we don't burn requests for nothing.
     const now = Date.now();
-    if (now < _rateLimitedUntil) {
+    if (now < this._rateLimitedUntil) {
       return { text: '', confidence: 0 };
     }
 
@@ -97,7 +96,7 @@ export class GroqSTTProvider implements STTProvider {
         if (response.status === 429) {
           const m = errBody.match(/try again in (\d+(?:\.\d+)?)s/i);
           const waitMs = m ? Math.ceil(parseFloat(m[1]) * 1000) : 5_000;
-          _rateLimitedUntil = Date.now() + waitMs;
+          this._rateLimitedUntil = Date.now() + waitMs;
           if (typeof window !== 'undefined') {
             window.dispatchEvent(
               new CustomEvent('mm:stt-error', {
@@ -120,7 +119,11 @@ export class GroqSTTProvider implements STTProvider {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(
             new CustomEvent('mm:stt-error', {
-              detail: { status: response.status, channel: payload.channel, body: errBody.slice(0, 200) },
+              detail: {
+                status: response.status,
+                channel: payload.channel,
+                body: errBody.slice(0, 200),
+              },
             }),
           );
         }
@@ -189,12 +192,18 @@ function base64ToBlob(base64: string, mimeType: string) {
  * and rendering "Add Groq API key in Settings".
  */
 export function createSttProvider(
-  mode: 'local' | 'groq' | 'auto',
+  mode: 'local' | 'groq' | 'auto' | 'deepgram',
   apiKey: string,
   language?: string,
 ): STTProvider {
   if (mode === 'local' || mode === 'auto') {
     return new LocalSttProvider(apiKey, language);
+  }
+  if (mode === 'deepgram') {
+    if (!apiKey || !apiKey.trim()) {
+      throw new MissingApiKeyError('deepgram');
+    }
+    return new DeepgramSTTProvider(apiKey, language);
   }
   // mode === 'groq' — require a valid key up front.
   if (!apiKey || !apiKey.trim().startsWith('gsk_')) {

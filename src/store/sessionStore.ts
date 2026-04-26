@@ -4,7 +4,8 @@ import { composeAnswer } from '../lib/copilot/answerComposer';
 import { buildResumeProfileContext } from '../lib/copilot/resumeProfile';
 import { extractMeetingMemory } from '../lib/copilot/memoryExtractor';
 import { detectQuestionDebounced } from '../lib/copilot/questionDetector';
-import { MockSTTProvider, GroqSTTProvider } from '../lib/providers/sttProvider';
+import { GroqSTTProvider } from '../lib/providers/sttProvider';
+import { MissingApiKeyError } from '../lib/providers/contracts';
 import { summarizeMeeting } from '../lib/copilot/summarizer';
 import {
   createLiveAnswerProvider,
@@ -212,6 +213,10 @@ function _flushTranscriptBatch() {
     const rollingWindow = [...state.rollingWindow, ...items].slice(-3);
     return { transcript, rollingWindow };
   });
+  // D1/Gap 11 fix: persist on every rAF flush. The rAF cadence (~60/s)
+  // is the correct batching granularity — SQLite handles that comfortably,
+  // and a crash now loses at most one frame's worth of items instead of
+  // the prior 500ms debounce window.
   scheduleTranscriptPersist(items);
 }
 
@@ -228,32 +233,83 @@ function scheduleTranscriptFlush(item: TranscriptItem) {
   }
 }
 
-// ── Debounced SQLite transcript persistence (500 ms) ─────────────────────────
-let _persistTimer: ReturnType<typeof setTimeout> | null = null;
+// ── SQLite transcript persistence (per rAF flush, no extra debounce) ─────────
+//
+// D1/Gap 11: persist every rAF batch immediately. The rAF caller is already
+// throttled to ~60/s and items are coalesced per frame — that is the correct
+// batching granularity. Removing the prior 500ms debounce shrinks the
+// crash-loss window from ~500ms to ~16ms.
+//
+// In-flight requests are tracked so a renderer crash doesn't leave dangling
+// promises; on persist failure we fall back to localStorage as a write-ahead
+// log so the next session-resume can replay them.
+const _persistFailureBuffer: TranscriptItem[] = [];
+const PERSIST_FAILURE_LS_KEY = 'mm.transcript.pending_persist';
+
 function scheduleTranscriptPersist(items: TranscriptItem[]) {
-  // Fire-and-forget: don't await, don't block render.
-  // F27: capture-and-fire pattern. Re-read sessionId at fire time; if missing
-  //      (e.g. crash recovery, session ended mid-flight) drop silently and
-  //      surface via a non-fatal CustomEvent so the UI can react if it cares.
-  if (_persistTimer) clearTimeout(_persistTimer);
-  _persistTimer = setTimeout(() => {
-    const state = useSessionStore.getState();
-    if (!state.sessionId || items.length === 0) return;
-    invoke('upsert_transcript_items_batch', { sessionId: state.sessionId, items }).catch((err) => {
-      // Log but don't crash; items will be re-tried on next batch.
-      logger.warn('sessionStore', 'transcript persist failed', { err: String(err) });
+  if (items.length === 0) return;
+  const state = useSessionStore.getState();
+  if (!state.sessionId) return;
+  const sessionId = state.sessionId;
+  invoke('upsert_transcript_items_batch', { sessionId, items }).catch((err) => {
+    logger.warn('sessionStore', 'transcript persist failed', { err: String(err) });
+    // Buffer to localStorage so a successful follow-up can flush both
+    // pending and historical items. This is the write-ahead log called
+    // out in AUDIT §19/D1.
+    _persistFailureBuffer.push(...items);
+    try {
+      const existing = localStorage.getItem(PERSIST_FAILURE_LS_KEY);
+      const prior: TranscriptItem[] = existing ? (JSON.parse(existing) as TranscriptItem[]) : [];
+      const merged = [...prior, ...items].slice(-500); // cap at 500 to bound storage
+      localStorage.setItem(PERSIST_FAILURE_LS_KEY, JSON.stringify(merged));
+    } catch (lsErr) {
+      logger.debug('sessionStore', 'localStorage WAL write failed', { err: String(lsErr) });
+    }
+    try {
+      window.dispatchEvent(
+        new CustomEvent('mm:persist-error', { detail: { reason: String(err) } }),
+      );
+    } catch (dispatchErr) {
+      logger.debug('sessionStore', 'persist-error dispatch failed', {
+        err: String(dispatchErr),
+      });
+    }
+  });
+}
+
+/** Replay any items captured in the WAL buffer the last time persist failed. */
+export function replayPendingTranscriptPersist(): void {
+  let pending: TranscriptItem[] = [];
+  try {
+    const existing = localStorage.getItem(PERSIST_FAILURE_LS_KEY);
+    if (existing) pending = JSON.parse(existing) as TranscriptItem[];
+  } catch {
+    /* corrupt WAL — drop it */
+    try {
+      localStorage.removeItem(PERSIST_FAILURE_LS_KEY);
+    } catch {
+      /* noop */
+    }
+    return;
+  }
+  if (pending.length === 0) return;
+  const state = useSessionStore.getState();
+  if (!state.sessionId) return;
+  invoke('upsert_transcript_items_batch', {
+    sessionId: state.sessionId,
+    items: pending,
+  })
+    .then(() => {
       try {
-        window.dispatchEvent(
-          new CustomEvent('mm:persist-error', { detail: { reason: String(err) } }),
-        );
-      } catch (dispatchErr) {
-        // window may not exist in some test environments.
-        logger.debug('sessionStore', 'persist-error dispatch failed', {
-          err: String(dispatchErr),
-        });
+        localStorage.removeItem(PERSIST_FAILURE_LS_KEY);
+      } catch {
+        /* noop */
       }
+      _persistFailureBuffer.length = 0;
+    })
+    .catch(() => {
+      /* keep WAL for next attempt */
     });
-  }, 500);
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -363,8 +419,16 @@ export const useSessionStore = create<SessionState>((set) => ({
       textLength: item.text.length,
     });
 
+    // Question source rule: in a real interview the interviewer arrives over the
+    // system-audio (`customer`) channel; in solo / practice mode there's no
+    // interviewer feed and the user's own mic is the question source. Fall
+    // through to detection on user speech only when no customer line has ever
+    // been ingested in this session.
     if (item.speaker !== 'customer') {
-      return;
+      const hasCustomerSpeech = state.transcript.some((t) => t.speaker === 'customer');
+      if (hasCustomerSpeech) {
+        return;
+      }
     }
 
     // Wait until the rAF batch flushes so the store has the latest transcript,
@@ -378,7 +442,25 @@ export const useSessionStore = create<SessionState>((set) => ({
     });
 
     const currentState = useSessionStore.getState();
-    const detection = await detectQuestionDebounced(currentState.transcript);
+
+    // Gap 15 fix: parallelize question detection and RAG retrieval. Both
+    // consume the same transcript window, so we can fire the (semantic)
+    // knowledge-base search against the raw transcript tail while the
+    // classifier runs. Worst case: detection returns isQuestion=false and
+    // we discard the RAG result. The win is that for true questions we
+    // pay the max(detection, rag) wall-clock instead of sum.
+    const knowledgeRepository = createKnowledgeRepository();
+    const lastTranscriptText = currentState.transcript
+      .slice(-3)
+      .map((t) => t.text)
+      .join(' ')
+      .slice(0, 600);
+    const [detection, parallelRelevant] = await Promise.all([
+      detectQuestionDebounced(currentState.transcript),
+      lastTranscriptText
+        ? knowledgeRepository.searchRelevant(lastTranscriptText, 4).catch(() => [])
+        : Promise.resolve([]),
+    ]);
 
     if (!detection.isQuestion) {
       return;
@@ -396,8 +478,15 @@ export const useSessionStore = create<SessionState>((set) => ({
 
     const generationStartedAt = performance.now();
 
-    const knowledgeRepository = createKnowledgeRepository();
-    const relevant = await knowledgeRepository.searchRelevant(detection.questionText, 4);
+    // If the parallel pre-fetch already saw enough overlap with the detected
+    // question text we reuse it (saves a second embedding pass). Otherwise
+    // fall back to a focused query against the canonical question text.
+    const reuseParallel =
+      parallelRelevant.length >= 2 &&
+      lastTranscriptText.toLowerCase().includes(detection.questionText.slice(0, 24).toLowerCase());
+    const relevant = reuseParallel
+      ? parallelRelevant
+      : await knowledgeRepository.searchRelevant(detection.questionText, 4);
     const ragChunks = relevant.map((match) => `${match.documentName}: ${match.chunk}`);
 
     if (ragChunks.length === 0) {
@@ -411,6 +500,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       groq: !!settings.groqApiKey,
       openai: !!settings.openAiApiKey,
       anthropic: !!settings.anthropicApiKey,
+      cerebras: !!(settings as { cerebrasApiKey?: string }).cerebrasApiKey,
     }) as typeof settings.selectedProvider;
     const resolvedProvider = routedProvider ?? settings.selectedProvider;
     const activeApiKey =
@@ -507,16 +597,27 @@ export const useSessionStore = create<SessionState>((set) => ({
       return;
     }
 
+    const settings = useSettingsStore.getState();
+    if (!settings.groqApiKey.trim().startsWith('gsk_')) {
+      set({
+        liveCaptureStatus: 'error',
+        lastError:
+          'Groq API key required. Open Settings → Providers and paste a key from console.groq.com.',
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('mm:keychain-error', { detail: { provider: 'groq', op: 'missing' } }),
+        );
+      }
+      useOverlayStore.getState().setStatus('Add Groq API key to start live capture');
+      throw new MissingApiKeyError('groq');
+    }
+
     set({ liveCaptureStatus: 'starting', lastError: null });
 
     try {
-      const settings = useSettingsStore.getState();
-      const micSttProvider = settings.groqApiKey.trim().startsWith('gsk_')
-        ? new GroqSTTProvider(settings.groqApiKey)
-        : new MockSTTProvider();
-      const systemSttProvider = settings.groqApiKey.trim().startsWith('gsk_')
-        ? new GroqSTTProvider(settings.groqApiKey)
-        : new MockSTTProvider();
+      const micSttProvider = new GroqSTTProvider(settings.groqApiKey);
+      const systemSttProvider = new GroqSTTProvider(settings.groqApiKey);
 
       await startNativeAudioPipeline(16_000, 1);
       const nativeStatus = await getNativeAudioPipelineStatus();

@@ -1,9 +1,12 @@
 import type { TranscriptItem } from '../../store/sessionStore';
 import type { AIProvider } from '../providers/aiProvider';
 import { getRuntimeConfig } from '../runtime/appConfig';
+import { decide, recordFailure, recordSuccess, type ProviderId } from '../runtime/router';
 import { composeStar } from './starEngine';
 import { composeSystemDesign } from './systemDesignEngine';
 import type { QuestionDetection } from './questionDetector';
+import { tryParseJson } from './jsonRepair';
+import { applyBudget } from './tokenBudget';
 
 type ComposeAnswerArgs = {
   provider: AIProvider;
@@ -123,13 +126,37 @@ export async function composeAnswer({
     `Retrieved context: ${enrichedChunks.join(' | ')}`,
   ].join('\n');
 
+  // Phase BE: ask the router which provider it would have picked. The
+  // composer doesn't construct providers (the orchestrator does and passes
+  // `provider` in) but we still feed router telemetry — circuit breakers
+  // and TTFT windows learn from every call regardless of who built the
+  // client. `route.primary` is the ProviderId we'll attribute success/
+  // failure to. If the router routes to 'demo' (all real providers down or
+  // unconfigured) we still attribute against that bucket so getStats() is
+  // honest about the world.
+  const route = decide('auto');
+  const attributedProvider: ProviderId = route.primary;
+  const start = Date.now();
+
+  // L4 fix: enforce a per-provider input budget. If we'd exceed it, trim the
+  // user prompt's middle (the conversation/RAG context, where redundancy is
+  // most likely) so we never flip a 413 into the user's face.
+  const combined = `${systemPrompt}\n${userPrompt}`;
+  const budget = applyBudget(combined, attributedProvider);
+  let safeUserPrompt = userPrompt;
+  if (!budget.ok) {
+    // Trim only the user prompt; system prompt is short and load-bearing.
+    const userBudget = applyBudget(userPrompt, attributedProvider);
+    safeUserPrompt = userBudget.trimmed;
+  }
+
   try {
     // Prefer the streaming path when the provider supports it and a chunk
     // callback has been supplied — this emits tokens to the UI in real time.
     const providerCall =
       onChunk !== undefined && typeof provider.stream === 'function'
-        ? provider.stream({ systemPrompt, userPrompt }, onChunk)
-        : provider.complete({ systemPrompt, userPrompt });
+        ? provider.stream({ systemPrompt, userPrompt: safeUserPrompt }, onChunk)
+        : provider.complete({ systemPrompt, userPrompt: safeUserPrompt });
 
     const response = await Promise.race([
       providerCall,
@@ -138,7 +165,13 @@ export async function composeAnswer({
       ),
     ]);
 
-    const parsed = JSON.parse(response) as Partial<AnswerPayload>;
+    // First-token timing isn't observable through the current AIProvider
+    // contract (resolves on full completion), so we record total latency as
+    // a TTFT proxy. Once the streaming contract surfaces a first-chunk
+    // hook, swap this for the true first-token delta.
+    recordSuccess(attributedProvider, Date.now() - start);
+
+    const parsed = tryParseJson<Partial<AnswerPayload>>(response) ?? ({} as Partial<AnswerPayload>);
     return {
       answer: parsed.answer ?? 'I can provide a careful draft based on what is known.',
       bullets: Array.isArray(parsed.bullets)
@@ -148,6 +181,7 @@ export async function composeAnswer({
       sources: Array.isArray(parsed.sources) ? parsed.sources : [],
     };
   } catch {
+    recordFailure(attributedProvider);
     return {
       answer: 'I can share a short draft now and verify details after the call.',
       bullets: [

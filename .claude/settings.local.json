@@ -16,7 +16,8 @@
       "Bash(npx kill-port:*)",
       "Bash(pkill -f \"tauri\")",
       "Bash(pkill -f \"cargo run\")",
-      "Bash(tasklist /fi \"imagename eq cargo.exe\")"
+      "Bash(tasklist /fi \"imagename eq cargo.exe\")",
+      "PowerShell(python .graphify_ast_run.py)"
     ]
   }
 }

@@ -3,24 +3,19 @@ import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { logger } from '../../lib/logger';
 import { evaluateShareGuard } from '../../lib/runtime/shareGuard';
+import { extractProblemFromScreenshot } from '../../lib/copilot/visionSolver';
 import { useOverlayStore } from '../../store/overlayStore';
 import { useSessionStore } from '../../store/sessionStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import './companion.css';
 
-// Inline hotkey rows that match the actual Phase 1A registrations.
-// TODO: replace with `import { HOTKEY_ROWS } from '../../lib/hotkeyCatalog'`
-// once Agent 2F's shared catalog ships.
-const COMPANION_HOTKEYS: Array<{ keys: string; label: string }> = [
-  { keys: 'Ctrl+Shift+H', label: 'Toggle overlay' },
-  { keys: 'Ctrl+Shift+S', label: 'Screenshot + solve' },
-  { keys: 'Ctrl+Shift+C', label: 'Copy answer' },
-  { keys: 'Ctrl+Shift+T', label: 'Toggle click-through' },
-  { keys: 'Ctrl+Shift+Enter', label: 'Generate answer' },
-  { keys: 'Ctrl+Shift+N', label: 'Next suggestion' },
-  { keys: 'Ctrl+Shift+↑/↓', label: 'Scroll answer' },
-  { keys: 'Esc', label: 'Dismiss overlay' },
-];
+// LOW 22 fix: now sourced from the shared catalog. The dashboard list is
+// the canonical "what hotkeys exist" reference; the prior duplication had
+// drifted (e.g. Ctrl+Shift+G/O/A provider switches were missing here).
+import { HOTKEY_ROWS } from '../../lib/hotkeyCatalog';
+const COMPANION_HOTKEYS: Array<{ keys: string; label: string }> = HOTKEY_ROWS.dashboard.map(
+  (row) => ({ keys: row.keys.join('+'), label: row.label }),
+);
 
 type ScreenshotResult = { imageBase64: string };
 
@@ -57,7 +52,6 @@ export function CompanionWindow() {
         return;
       }
       setScreenshotNote('Extracting…');
-      const { extractProblemFromScreenshot } = await import('../../lib/copilot/visionSolver');
       const problem = await extractProblemFromScreenshot(result.imageBase64, apiKey);
       setScreenshotNote(problem.title ? `Captured: ${problem.title}` : 'Captured');
       window.dispatchEvent(new CustomEvent('companion:screenshot-problem', { detail: problem }));

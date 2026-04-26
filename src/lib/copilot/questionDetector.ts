@@ -97,14 +97,49 @@ const followUpSignals = [
   'go deeper',
   'expand on',
   'give me an example of that',
+  'and then',
+  'what happened next',
+  'why did you',
+  'how would you',
+  'in that case',
+  'building on that',
 ];
 
-function isFollowUpQuestion(text: string, previousText: string): boolean {
+// LOW 16 fix: previously any short utterance (<12 words) was treated as a
+// follow-up if there had been a prior question. That caused tons of false
+// positives on simple questions like "What is REST?" — a clear standalone.
+// New rules:
+//  1) Explicit cue phrases (most reliable signal) — always a follow-up.
+//  2) Demonstrative-only opener ("that", "it", "this approach") with no new
+//     content noun → likely follow-up.
+//  3) Short + recent-prior-question (<60s) AND explicit reference word.
+//
+// `previousText` is no longer enough on its own.
+function isFollowUpQuestion(text: string, previousText: string, previousAtMs: number = 0): boolean {
   const normalized = text.toLowerCase();
-  return (
-    followUpSignals.some((s) => normalized.includes(s)) ||
-    (normalized.split(' ').length < 12 && previousText.length > 0)
+
+  // (1) Explicit cue phrase — always count.
+  if (followUpSignals.some((s) => normalized.includes(s))) return true;
+
+  // (2 / 3) Need a recent prior question to even consider follow-up.
+  if (!previousText || previousText.length === 0) return false;
+  const recencyMs = previousAtMs > 0 ? Date.now() - previousAtMs : 0;
+  const isRecent = previousAtMs === 0 || recencyMs < 60_000;
+
+  // Demonstrative reference words — "that", "it", "this", "those", "the X
+  // you mentioned". A standalone question rarely starts with one of these.
+  const referenceLeaders = /^\s*(and\s+)?(so\s+)?(but\s+)?(then\s+)?(that|it|this|those|these)\b/i;
+  if (isRecent && referenceLeaders.test(text)) return true;
+
+  // Short utterance with an explicit demonstrative anywhere — softer signal,
+  // still requires recency to fire. Tightened from <12 → <8 words.
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  const hasDemonstrative = /\b(that|it|this approach|the (one|thing|method|approach))\b/i.test(
+    text,
   );
+  if (isRecent && wordCount < 8 && hasDemonstrative) return true;
+
+  return false;
 }
 
 // ── In-memory result cache keyed by normalised text (last 32 entries) ────────
@@ -131,6 +166,7 @@ let _pendingResolvers: Array<(r: QuestionDetection) => void> = [];
 
 // ── LLM classification state ──────────────────────────────────────────────────
 let _lastQuestionText = '';
+let _lastQuestionAt = 0;
 
 async function classifyWithLLM(
   text: string,
@@ -205,13 +241,45 @@ export function detectQuestion(transcript: TranscriptItem[]): QuestionDetection 
   // question marks for spoken speech, so we lean heavily on prefixes and
   // verb-first patterns that signal a request.
   const interrogativeStarts = [
-    'can you', 'could you', 'would you', 'will you',
-    'what', 'when', 'where', 'who', 'whom', 'whose', 'which', 'how', 'why',
-    'tell me', 'describe', 'design', 'explain', 'walk me', 'walk us',
-    'give me', 'show me', 'help me', 'teach me', 'guide me',
-    'is there', 'are there', 'do you', 'does this', 'have you', 'has this',
-    'should i', 'should we', 'could we', 'shall we',
-    'write a', 'write me', 'implement', 'solve', 'optimize',
+    'can you',
+    'could you',
+    'would you',
+    'will you',
+    'what',
+    'when',
+    'where',
+    'who',
+    'whom',
+    'whose',
+    'which',
+    'how',
+    'why',
+    'tell me',
+    'describe',
+    'design',
+    'explain',
+    'walk me',
+    'walk us',
+    'give me',
+    'show me',
+    'help me',
+    'teach me',
+    'guide me',
+    'is there',
+    'are there',
+    'do you',
+    'does this',
+    'have you',
+    'has this',
+    'should i',
+    'should we',
+    'could we',
+    'shall we',
+    'write a',
+    'write me',
+    'implement',
+    'solve',
+    'optimize',
   ];
   const containsInterrogative = /\b(why|how|what|when|where|which|who)\b/i.test(text);
   const isQuestion =
@@ -226,9 +294,11 @@ export function detectQuestion(transcript: TranscriptItem[]): QuestionDetection 
       questionText: '',
       questionType: 'other',
       confidence: 0.2,
-      isFollowUp: isFollowUpQuestion(text, _lastQuestionText),
+      isFollowUp: isFollowUpQuestion(text, _lastQuestionText, _lastQuestionAt),
     };
     cacheSet(normalized, result);
+    // Don't update _lastQuestionAt here — this branch is for non-questions,
+    // so the prior question's recency window stays intact for the next call.
     _lastQuestionText = text;
     return result;
   }
@@ -251,7 +321,7 @@ export function detectQuestion(transcript: TranscriptItem[]): QuestionDetection 
     questionType = 'objection';
   }
 
-  const followUp = isFollowUpQuestion(text, _lastQuestionText);
+  const followUp = isFollowUpQuestion(text, _lastQuestionText, _lastQuestionAt);
   const regexConfidence = 0.93;
 
   const result: QuestionDetection = {
@@ -266,6 +336,7 @@ export function detectQuestion(transcript: TranscriptItem[]): QuestionDetection 
   // If regex confidence is high, return immediately without LLM
   if (regexConfidence >= 0.85) {
     _lastQuestionText = text;
+    _lastQuestionAt = Date.now();
     return result;
   }
 
@@ -286,6 +357,7 @@ export function detectQuestion(transcript: TranscriptItem[]): QuestionDetection 
     });
 
   _lastQuestionText = text;
+  _lastQuestionAt = Date.now();
   return result;
 }
 

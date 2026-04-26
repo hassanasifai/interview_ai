@@ -131,7 +131,14 @@ export async function readPersistedSessions(): Promise<SessionSummary[]> {
     return invoke<SessionSummary[]>('list_session_summaries');
   }
   const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-  return raw ? (JSON.parse(raw) as SessionSummary[]) : [];
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as SessionSummary[];
+  } catch (err) {
+    logger.warn('tauri', 'corrupt session summaries; resetting', { err: String(err) });
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    return [];
+  }
 }
 
 export async function persistTranscriptItem(sessionId: string, item: TranscriptItem) {
@@ -171,7 +178,14 @@ export async function readPersistedAuditEvents(): Promise<AuditEvent[]> {
     return invoke<AuditEvent[]>('list_audit_events');
   }
   const raw = localStorage.getItem(AUDIT_STORAGE_KEY);
-  return raw ? (JSON.parse(raw) as AuditEvent[]) : [];
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as AuditEvent[];
+  } catch (err) {
+    logger.warn('tauri', 'corrupt persisted audit events; resetting', { err: String(err) });
+    localStorage.removeItem(AUDIT_STORAGE_KEY);
+    return [];
+  }
 }
 
 export async function clearPersistedAuditEvents() {
@@ -185,7 +199,14 @@ export async function clearPersistedAuditEvents() {
 
 function readTranscriptFallback(): Record<string, TranscriptItem[]> {
   const raw = localStorage.getItem(TRANSCRIPT_STORAGE_KEY);
-  return raw ? (JSON.parse(raw) as Record<string, TranscriptItem[]>) : {};
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, TranscriptItem[]>;
+  } catch (err) {
+    logger.warn('tauri', 'corrupt transcript fallback; resetting', { err: String(err) });
+    localStorage.removeItem(TRANSCRIPT_STORAGE_KEY);
+    return {};
+  }
 }
 
 // ── Native audio pipeline ─────────────────────────────────────────────────────

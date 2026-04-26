@@ -1,3 +1,4 @@
+pub mod local_stt;
 pub mod mic_capture;
 pub mod vad;
 pub mod wasapi_capture;

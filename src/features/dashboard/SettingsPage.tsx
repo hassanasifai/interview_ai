@@ -23,7 +23,9 @@ import {
   Volume2,
 } from 'lucide-react';
 import { useSettingsStore } from '../../store/settingsStore';
+import { LocalWhisperPanel } from './LocalWhisperPanel';
 import { logger } from '../../lib/logger';
+import { parseDocx, parsePdf } from '../../lib/rag/documentParser';
 import { appendAuditEvent } from '../../lib/runtime/auditEvents';
 import {
   GROQ_MODEL_OPTIONS,
@@ -51,6 +53,7 @@ import {
   type ShareMode,
 } from '../../lib/runtime/shareGuard';
 import type { ProviderName } from '../../lib/tauri';
+import type { ExtendedProviderName } from '../../store/settingsStore';
 import {
   Badge,
   Button,
@@ -81,6 +84,7 @@ const PROVIDER_OPTIONS = [
   { value: 'groq', label: 'Groq' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'anthropic', label: 'Anthropic' },
+  { value: 'cerebras', label: 'Cerebras' },
 ] as const;
 
 const SHARE_MODE_OPTIONS = [
@@ -151,6 +155,8 @@ export function SettingsPage() {
     groqApiKey,
     openAiApiKey,
     anthropicApiKey,
+    cerebrasApiKey,
+    deepgramApiKey,
     selectedProvider,
     providerModel,
     sttLanguage,
@@ -163,6 +169,9 @@ export function SettingsPage() {
     consentAccepted,
     sttMode,
     vadThreshold,
+    vadEngine,
+    sileroPositiveThreshold,
+    sileroRedemptionFrames,
     autoActivate,
     ttsProvider,
     elevenlabsApiKey,
@@ -177,23 +186,26 @@ export function SettingsPage() {
   // ── Local state ──
   const [retentionDays, setRetentionDays] = useState(runtimeConfig.auditRetentionDays);
   const [disclosureRegion, setDisclosureRegion] = useState<DisclosureRegion>('global');
-  const [savingKey, setSavingKey] = useState<ProviderName | null>(null);
-  const [revealKey, setRevealKey] = useState<Record<ProviderName, boolean>>({
+  const [savingKey, setSavingKey] = useState<ExtendedProviderName | null>(null);
+  const [revealKey, setRevealKey] = useState<Record<ExtendedProviderName, boolean>>({
     groq: false,
     openai: false,
     anthropic: false,
+    cerebras: false,
   });
-  const [testLatency, setTestLatency] = useState<Record<ProviderName, number | null>>({
+  const [testLatency, setTestLatency] = useState<Record<ExtendedProviderName, number | null>>({
     groq: null,
     openai: null,
     anthropic: null,
+    cerebras: null,
   });
-  const [savedProviders, setSavedProviders] = useState<Record<ProviderName, boolean>>({
+  const [savedProviders, setSavedProviders] = useState<Record<ExtendedProviderName, boolean>>({
     groq: Boolean(groqApiKey),
     openai: Boolean(openAiApiKey),
     anthropic: Boolean(anthropicApiKey),
+    cerebras: Boolean(cerebrasApiKey),
   });
-  const [testingKey, setTestingKey] = useState<ProviderName | null>(null);
+  const [testingKey, setTestingKey] = useState<ExtendedProviderName | null>(null);
   const [voiceSensitivity, setVoiceSensitivity] = useState(60);
   const [systemLoopback, setSystemLoopback] = useState(false);
   const [autoDetectLang, setAutoDetectLang] = useState(false);
@@ -320,17 +332,25 @@ export function SettingsPage() {
 
   const configHealth = useMemo(() => getRuntimeConfigHealth(), []);
 
-  function getApiKey(provider: ProviderName) {
+  function getApiKey(provider: ExtendedProviderName) {
     if (provider === 'openai') return openAiApiKey;
     if (provider === 'anthropic') return anthropicApiKey;
+    if (provider === 'cerebras') return cerebrasApiKey;
     return groqApiKey;
   }
 
-  const currentApiKey = getApiKey(selectedProvider);
+  // Widened alias so JSX comparisons against the new 'cerebras' provider
+  // (which is not in the narrow ProviderName union held by the store) compile.
+  const selectedProviderX = selectedProvider as ExtendedProviderName;
+  const currentApiKey = getApiKey(selectedProviderX);
 
   function setCurrentApiKey(next: string) {
-    if (selectedProvider === 'openai') patch({ openAiApiKey: next });
-    else if (selectedProvider === 'anthropic') patch({ anthropicApiKey: next });
+    // selectedProvider is narrow ProviderName in the store but the UI may
+    // hold the widened 'cerebras' value via the SegmentedControl cast above.
+    const p = selectedProvider as ExtendedProviderName;
+    if (p === 'openai') patch({ openAiApiKey: next });
+    else if (p === 'anthropic') patch({ anthropicApiKey: next });
+    else if (p === 'cerebras') patch({ cerebrasApiKey: next });
     else patch({ groqApiKey: next });
   }
 
@@ -338,7 +358,7 @@ export function SettingsPage() {
     patch({ profile: { ...profile, [field]: value } });
   }
 
-  async function handleSaveKey(provider: ProviderName, key: string) {
+  async function handleSaveKey(provider: ExtendedProviderName, key: string) {
     setSavingKey(provider);
     try {
       await saveApiKey(provider, key);
@@ -353,7 +373,7 @@ export function SettingsPage() {
     }
   }
 
-  async function handleTestKey(provider: ProviderName) {
+  async function handleTestKey(provider: ExtendedProviderName) {
     setTestingKey(provider);
     const start = performance.now();
     await new Promise((resolve) => setTimeout(resolve, 180 + Math.floor(Math.random() * 220)));
@@ -628,41 +648,50 @@ export function SettingsPage() {
             />
 
             <div style={{ marginTop: 12 }}>
-              <label style={{ display: 'block', fontSize: 'var(--fs-sm)', fontWeight: 500, marginBottom: 6 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 'var(--fs-sm)',
+                  fontWeight: 500,
+                  marginBottom: 6,
+                }}
+              >
                 Resume / CV (PDF, DOCX, or TXT)
               </label>
               <input
                 type="file"
                 accept=".pdf,.docx,.txt"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  try {
-                    const buf = await file.arrayBuffer();
-                    let text = '';
-                    if (file.name.toLowerCase().endsWith('.pdf')) {
-                      const { parsePdf } = await import('../../lib/rag/documentParser');
-                      text = await parsePdf(buf);
-                    } else if (file.name.toLowerCase().endsWith('.docx')) {
-                      const { parseDocx } = await import('../../lib/rag/documentParser');
-                      text = await parseDocx(buf);
-                    } else {
-                      text = await file.text();
+                onChange={(e) => {
+                  void (async () => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const buf = await file.arrayBuffer();
+                      let text = '';
+                      if (file.name.toLowerCase().endsWith('.pdf')) {
+                        text = await parsePdf(buf);
+                      } else if (file.name.toLowerCase().endsWith('.docx')) {
+                        text = await parseDocx(buf);
+                      } else {
+                        text = await file.text();
+                      }
+                      updateProfile('resumeText', text.trim());
+                    } catch (err) {
+                      logger.warn('settings', 'resume parse failed', { err: String(err) });
                     }
-                    updateProfile('resumeText', text.trim());
-                  } catch (err) {
-                    alert('Could not parse this file: ' + String(err));
-                  }
+                  })();
                 }}
                 style={{ fontSize: 'var(--fs-sm)' }}
               />
               {profile.resumeText ? (
                 <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--fg-tertiary)', marginTop: 6 }}>
-                  ✓ Loaded ({profile.resumeText.length.toLocaleString()} chars). The AI will use this for personalized answers.
+                  ✓ Loaded ({profile.resumeText.length.toLocaleString()} chars). The AI will use
+                  this for personalized answers.
                 </p>
               ) : (
                 <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--fg-tertiary)', marginTop: 6 }}>
-                  Upload your resume so the AI can ground answers in your real experience (STAR examples, skills match, etc).
+                  Upload your resume so the AI can ground answers in your real experience (STAR
+                  examples, skills match, etc).
                 </p>
               )}
             </div>
@@ -695,52 +724,64 @@ export function SettingsPage() {
 
           {/* Per-provider saved status row */}
           <div className="settings-provider-status-row">
-            {(PROVIDER_OPTIONS as ReadonlyArray<{ value: ProviderName; label: string }>).map(
-              ({ value, label }) => (
-                <div key={value} className="settings-provider-status-item">
-                  <StatusDot status={savedProviders[value] ? 'ok' : 'neutral'} />
-                  <strong>{label}</strong>
-                  <span>{savedProviders[value] ? 'Key saved' : 'No key'}</span>
-                </div>
-              ),
-            )}
+            {(
+              PROVIDER_OPTIONS as ReadonlyArray<{ value: ExtendedProviderName; label: string }>
+            ).map(({ value, label }) => (
+              <div key={value} className="settings-provider-status-item">
+                <StatusDot status={savedProviders[value] ? 'ok' : 'neutral'} />
+                <strong>{label}</strong>
+                <span>{savedProviders[value] ? 'Key saved' : 'No key'}</span>
+              </div>
+            ))}
           </div>
 
           <Card padding="lg">
-            <SegmentedControl<ProviderName>
+            <SegmentedControl<ExtendedProviderName>
               aria-label="AI provider"
-              value={selectedProvider}
-              onChange={(next) => patch({ selectedProvider: next, providerModel: '' })}
+              value={selectedProvider as ExtendedProviderName}
+              onChange={(next) =>
+                patch({ selectedProvider: next as ProviderName, providerModel: '' })
+              }
               options={PROVIDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
             />
 
             <div className="settings-provider-card">
               <div className="settings-provider-card__row">
                 <Input
-                  label={`${selectedProvider === 'groq' ? 'Groq' : selectedProvider === 'openai' ? 'OpenAI' : 'Anthropic'} API key`}
-                  type={revealKey[selectedProvider] ? 'text' : 'password'}
+                  label={`${
+                    selectedProviderX === 'groq'
+                      ? 'Groq'
+                      : selectedProviderX === 'openai'
+                        ? 'OpenAI'
+                        : selectedProviderX === 'anthropic'
+                          ? 'Anthropic'
+                          : 'Cerebras'
+                  } API key`}
+                  type={revealKey[selectedProviderX] ? 'text' : 'password'}
                   value={currentApiKey}
                   placeholder={
-                    selectedProvider === 'openai'
+                    selectedProviderX === 'openai'
                       ? 'sk-...'
-                      : selectedProvider === 'anthropic'
+                      : selectedProviderX === 'anthropic'
                         ? 'sk-ant-...'
-                        : 'gsk_...'
+                        : selectedProviderX === 'cerebras'
+                          ? 'csk-...'
+                          : 'gsk_...'
                   }
                   onChange={(e) => setCurrentApiKey(e.target.value)}
                   trailingIcon={
                     <IconButton
-                      aria-label={revealKey[selectedProvider] ? 'Hide key' : 'Show key'}
+                      aria-label={revealKey[selectedProviderX] ? 'Hide key' : 'Show key'}
                       size="sm"
                       variant="ghost"
                       onClick={() =>
                         setRevealKey((prev) => ({
                           ...prev,
-                          [selectedProvider]: !prev[selectedProvider],
+                          [selectedProviderX]: !prev[selectedProviderX],
                         }))
                       }
                     >
-                      {revealKey[selectedProvider] ? (
+                      {revealKey[selectedProviderX] ? (
                         <EyeOff size={14} aria-hidden />
                       ) : (
                         <Eye size={14} aria-hidden />
@@ -750,8 +791,8 @@ export function SettingsPage() {
                 />
                 <Button
                   variant="secondary"
-                  loading={savingKey === selectedProvider}
-                  onClick={() => void handleSaveKey(selectedProvider, currentApiKey)}
+                  loading={savingKey === selectedProviderX}
+                  onClick={() => void handleSaveKey(selectedProviderX, currentApiKey)}
                   leadingIcon={<KeyRound size={14} aria-hidden />}
                 >
                   Save
@@ -762,27 +803,32 @@ export function SettingsPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  loading={testingKey === selectedProvider}
-                  onClick={() => void handleTestKey(selectedProvider)}
+                  loading={testingKey === selectedProviderX}
+                  onClick={() => void handleTestKey(selectedProviderX)}
                 >
                   Test connection
                 </Button>
-                {testLatency[selectedProvider] != null && (
-                  <Badge variant={latencyVariant(testLatency[selectedProvider])}>
-                    {testLatency[selectedProvider]}ms
+                {testLatency[selectedProviderX] != null && (
+                  <Badge variant={latencyVariant(testLatency[selectedProviderX])}>
+                    {testLatency[selectedProviderX]}ms
                   </Badge>
                 )}
                 <span className="settings-keychain-chip">
                   <ShieldCheck size={11} aria-hidden />
                   OS keychain
                 </span>
-                {savedProviders[selectedProvider] && (
+                {savedProviders[selectedProviderX] && (
                   <span className="settings-keychain-chip">
                     <CheckCircle2 size={11} aria-hidden style={{ color: 'var(--ok)' }} />
                     Key saved
                   </span>
                 )}
               </div>
+              {selectedProviderX === 'cerebras' && (
+                <small style={{ color: 'var(--fg-tertiary)', fontSize: 'var(--fs-xs)' }}>
+                  Get a Cerebras API key at console.cerebras.ai (free tier 1M tokens/day)
+                </small>
+              )}
             </div>
 
             <Select
@@ -849,31 +895,104 @@ export function SettingsPage() {
                 options={[
                   { value: 'groq', label: 'Cloud (Groq)' },
                   { value: 'local', label: 'Native (Local)' },
+                  { value: 'deepgram', label: 'Deepgram (cloud, fastest)' },
                   { value: 'auto', label: 'Auto' },
                 ]}
-                onChange={(v) => patch({ sttMode: v as 'local' | 'groq' | 'auto' })}
+                onChange={(v) => patch({ sttMode: v as 'local' | 'groq' | 'deepgram' | 'auto' })}
               />
             </div>
 
-            <div className="settings-range">
-              <div className="settings-range__header">
-                <span className="settings-range__label">VAD Sensitivity</span>
-                <span className="settings-range__value">{vadThreshold ?? 0}</span>
-              </div>
+            {(sttMode === 'local' || sttMode === 'auto') && <LocalWhisperPanel />}
+
+            <div>
               <Input
-                type="range"
-                min={0}
-                max={3000}
-                step={50}
-                value={String(vadThreshold ?? 0)}
-                onChange={(e) => {
-                  patch({ vadThreshold: Number(e.target.value) });
-                  invoke('set_vad_threshold', { threshold: Number(e.target.value) }).catch(
-                    () => undefined,
-                  );
+                label="Deepgram API key"
+                type="password"
+                value={deepgramApiKey ?? ''}
+                placeholder="dg-..."
+                onChange={(e) => patch({ deepgramApiKey: e.target.value })}
+                onBlur={(e) => {
+                  const v = e.target.value;
+                  if (v) void useSettingsStore.getState().saveDeepgramKey(v);
                 }}
               />
+              <small style={{ color: 'var(--fg-tertiary)', fontSize: 'var(--fs-xs)' }}>
+                Get a Deepgram API key at console.deepgram.com ($200 free credit)
+              </small>
             </div>
+
+            <div>
+              <label className="settings-field-label">Voice activity detection</label>
+              <SegmentedControl
+                value={vadEngine ?? 'silero'}
+                options={[
+                  { value: 'silero', label: 'Silero (browser, recommended)' },
+                  { value: 'rms', label: 'RMS energy (legacy)' },
+                ]}
+                onChange={(v) => patch({ vadEngine: v as 'silero' | 'rms' })}
+              />
+            </div>
+
+            {vadEngine === 'rms' && (
+              <div className="settings-range">
+                <div className="settings-range__header">
+                  <span className="settings-range__label">VAD Sensitivity</span>
+                  <span className="settings-range__value">{vadThreshold ?? 0}</span>
+                </div>
+                <Input
+                  type="range"
+                  min={0}
+                  max={3000}
+                  step={50}
+                  value={String(vadThreshold ?? 0)}
+                  onChange={(e) => {
+                    patch({ vadThreshold: Number(e.target.value) });
+                    invoke('set_vad_threshold', { threshold: Number(e.target.value) }).catch(
+                      () => undefined,
+                    );
+                  }}
+                />
+              </div>
+            )}
+
+            {vadEngine === 'silero' && (
+              <>
+                <div className="settings-range">
+                  <div className="settings-range__header">
+                    <span className="settings-range__label">Positive threshold</span>
+                    <span className="settings-range__value">
+                      {(sileroPositiveThreshold ?? 0.45).toFixed(2)}
+                    </span>
+                  </div>
+                  <Input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={String(sileroPositiveThreshold ?? 0.45)}
+                    onChange={(e) => patch({ sileroPositiveThreshold: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="settings-range">
+                  <div className="settings-range__header">
+                    <span className="settings-range__label">Redemption frames</span>
+                    <span className="settings-range__value">{sileroRedemptionFrames ?? 8}</span>
+                  </div>
+                  <Input
+                    type="range"
+                    min={1}
+                    max={32}
+                    step={1}
+                    value={String(sileroRedemptionFrames ?? 8)}
+                    onChange={(e) => patch({ sileroRedemptionFrames: Number(e.target.value) })}
+                  />
+                </div>
+                <small style={{ color: 'var(--fg-tertiary)', fontSize: 'var(--fs-xs)' }}>
+                  Silero v5 uses neural VAD with near-zero false positives. Lower threshold = more
+                  sensitive; more redemption frames = longer hangover.
+                </small>
+              </>
+            )}
 
             <div className="settings-toggle-list">
               <div className="settings-toggle-row">

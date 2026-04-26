@@ -1,4 +1,5 @@
 import { logger } from '../logger';
+import { tryParseJson } from './jsonRepair';
 
 export type ExtractedProblem = {
   title: string;
@@ -38,8 +39,8 @@ export async function extractProblemFromScreenshot(
     });
     const json = await res.json();
     const content = json.choices?.[0]?.message?.content ?? '';
-    const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] ?? '{}');
-    if (parsed.title) return parsed as ExtractedProblem;
+    const parsed = tryParseJson<ExtractedProblem>(content);
+    if (parsed && typeof parsed.title === 'string' && parsed.title.length > 0) return parsed;
   } catch (err) {
     logger.warn('visionSolver', 'extract failed, returning unknown', { err: String(err) });
   }

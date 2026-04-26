@@ -1,5 +1,6 @@
 import type { QuestionType } from './questionDetector';
 import { logger } from '../logger';
+import { tryParseJson } from './jsonRepair';
 
 export type ScoringDimension = { name: string; score: number; comment: string };
 export type AnswerScore = {
@@ -52,8 +53,8 @@ Dimensions to score: ${dimensions.join(', ')}`;
     });
     const json = await res.json();
     const content = json.choices?.[0]?.message?.content ?? '';
-    const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] ?? '{}');
-    if (parsed.overall) return parsed as AnswerScore;
+    const parsed = tryParseJson<AnswerScore>(content);
+    if (parsed && typeof parsed.overall === 'number') return parsed;
   } catch (err) {
     logger.warn('answerScorer', 'scoring failed, returning default', { err: String(err) });
   }

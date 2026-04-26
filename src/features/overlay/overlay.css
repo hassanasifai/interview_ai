@@ -49,6 +49,13 @@
 
   /* Solid border for layout; shimmer is on ::after */
   border: 1px solid var(--border-default);
+
+  /* LOW 25 fix: contain the ::after shimmer's z-index inside this stacking
+     context so it can't z-fight with scrolled descendants. `isolation`
+     creates a new stacking context without forcing a paint layer; combined
+     with `will-change: transform` on ::after, the shimmer rides its own
+     compositor layer and never flickers under scrolled content. */
+  isolation: isolate;
 }
 
 /* ── Active shimmer: <1px gold conic sweep ─────────────────────────────── */
@@ -69,6 +76,10 @@
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out);
   z-index: -1;
+  /* Promote to a dedicated compositor layer so the rotating conic gradient
+     never repaints alongside scrolled descendants. (LOW 25.) */
+  will-change: transform, opacity;
+  transform: translateZ(0);
 }
 
 .overlay-shell.is-streaming::after {

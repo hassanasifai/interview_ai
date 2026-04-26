@@ -12,7 +12,28 @@ This directory contains the Playwright end-to-end test scaffold for MeetingMind.
 
 - **Tauri-specific APIs (`invoke`, `listen`, `event`) will not work** in the plain webview without the Tauri host process. Tests that rely on Rust-side commands will return errors or no-ops.
 - This harness validates the React UI, routing, hotkeys, and webview-only behavior. It is intentionally lightweight.
-- For full desktop-process E2E coverage (real `invoke` calls, native windows, system tray, hotkeys at the OS level), set up `tauri-driver` + WebDriver. See `docs/RELEASE.md` (TODO) for the future plan.
+- For full desktop-process E2E coverage (real `invoke` calls, native windows, system tray, hotkeys at the OS level), there is now a separate config — see "Native E2E (tauri-driver)" below.
+
+## Native E2E (tauri-driver)
+
+A second Playwright config drives a real release-built Tauri binary via [`tauri-driver`](https://tauri.app/v1/guides/testing/webdriver/introduction):
+
+```bash
+# 1. Build the release binary
+cargo tauri build
+
+# 2. Install tauri-driver once
+cargo install tauri-driver
+
+# 3. Platform-specific WebDriver:
+#    Windows → install edgedriver matching your Edge version
+#    Linux   → apt install webkit2gtk-driver
+
+# 4. Run the native tests
+npx playwright test --config=e2e/tauri-driver.config.ts
+```
+
+Tests live in `e2e/native/*.native.spec.ts` and exercise the IPC bridge against the actual binary (so `get_monitors`, `set_overlay_monitor`, hotkey registration, and capture exclusion all run against real Rust commands instead of webview stubs). macOS is not currently supported by tauri-driver upstream; track [tauri-apps/tauri-driver#13](https://github.com/tauri-apps/tauri-driver/issues/13) for status.
 
 ## Running
 

@@ -1,0 +1,328 @@
+{
+  "nodes": [
+    {
+      "id": "icon_128x128",
+      "label": "App Icon 128x128",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/128x128.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_128x128_2x",
+      "label": "App Icon 128x128@2x",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/128x128@2x.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_32x32",
+      "label": "App Icon 32x32",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/32x32.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_main",
+      "label": "App Icon (Main)",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/icon.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_107",
+      "label": "Square 107x107 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square107x107Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_142",
+      "label": "Square 142x142 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square142x142Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_150",
+      "label": "Square 150x150 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square150x150Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_284",
+      "label": "Square 284x284 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square284x284Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_30",
+      "label": "Square 30x30 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square30x30Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_310",
+      "label": "Square 310x310 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square310x310Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_44",
+      "label": "Square 44x44 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square44x44Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_71",
+      "label": "Square 71x71 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square71x71Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_square_89",
+      "label": "Square 89x89 Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/Square89x89Logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_store_logo",
+      "label": "Store Logo",
+      "file_type": "image",
+      "source_file": "src-tauri/icons/StoreLogo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "icon_main",
+      "target": "icon_128x128",
+      "relation": "semantically_similar_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_128x128_2x",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_32x32",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_107",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_142",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_150",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_284",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_30",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_310",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_44",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_71",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_square_89",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_main",
+      "target": "icon_store_logo",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_128x128",
+      "target": "icon_128x128_2x",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "src-tauri/icons",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "tauri_packaging_icon_set",
+      "label": "Tauri Packaging Icon Set (Interlocked Cyan/Yellow Circles Logo)",
+      "nodes": [
+        "icon_128x128",
+        "icon_128x128_2x",
+        "icon_32x32",
+        "icon_main",
+        "icon_square_107",
+        "icon_square_142",
+        "icon_square_150",
+        "icon_square_284",
+        "icon_square_30",
+        "icon_square_310",
+        "icon_square_44",
+        "icon_square_71",
+        "icon_square_89",
+        "icon_store_logo"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src-tauri/icons"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

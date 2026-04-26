@@ -1,5 +1,9 @@
+// LOW 23 fix: extend language + stack coverage so resumes that emphasise
+// Go / Kotlin / C++ / Swift / Scala / Ruby / PHP / C# don't get filtered
+// out as "not enough resume signal". The list also matches common framework
+// and cloud terms typical in tech resumes.
 const RESUME_SIGNAL_PATTERN =
-  /(experience|years|speciali|built|led|owned|stack|skills|certif|domain|industry|python|typescript|react|rust|go|java|aws|gcp|azure)/i;
+  /(experience|years|speciali|built|led|owned|stack|skills|certif|domain|industry|python|typescript|javascript|react|next\.?js|node\.?js|rust|\bgo(?:lang)?\b|kotlin|swift|scala|\bruby\b|\brails\b|\bphp\b|c\+\+|c#|csharp|\bjava\b|spring\b|django|flask|fastapi|aws|gcp|azure|kubernetes|docker|terraform|graphql|postgres|mongodb)/i;
 
 function cleanLine(value: string) {
   return value.replace(/\s+/g, ' ').trim();

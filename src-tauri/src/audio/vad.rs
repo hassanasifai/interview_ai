@@ -7,9 +7,9 @@ pub fn is_speech(samples: &[i16], threshold: i16) -> bool {
     if samples.is_empty() {
         return false;
     }
-    let rms = (samples.iter().map(|&s| (s as i64).pow(2)).sum::<i64>() / samples.len() as i64)
-        as f64;
-    (rms.sqrt() as i16) > threshold.max(1)
+    let sum_sq: f64 = samples.iter().map(|&s| (s as f64).powi(2)).sum();
+    let rms = (sum_sq / samples.len() as f64).sqrt();
+    rms > (threshold.max(1) as f64)
 }
 
 /// Convenience wrapper that reads the global VAD threshold from `commands.rs`.

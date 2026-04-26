@@ -25,7 +25,8 @@ use commands::{
     start_meeting_daemon, start_mic_capture, start_native_audio_pipeline, stop_meeting_daemon,
     stop_mic_capture, stop_native_audio_pipeline, store_api_key, transcribe_audio_chunk,
     upsert_session_summary, upsert_transcript_item, upsert_transcript_items_batch,
-    MeetingDaemonState, MicCaptureState, NativeRuntime, NativeRuntimeState, WasapiState,
+    validate_remote_url, MeetingDaemonState, MicCaptureState, NativeRuntime, NativeRuntimeState,
+    WasapiState,
 };
 use db::Database;
 use window_manager::{create_overlay, destroy_overlay, toggle_overlay};
@@ -35,6 +36,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // Auto-update plugin: production builds can self-update from a
+        // signed release feed. Without an `updater` block in tauri.conf.json
+        // the plugin compiles but does nothing until configured.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let database = Database::initialize(app.handle())?;
             app.manage(Mutex::new(database));
@@ -108,6 +113,12 @@ pub fn run() {
             // Monitor info
             get_monitors,
             set_overlay_monitor,
+            // Local Whisper STT (Gap 1)
+            crate::audio::local_stt::transcribe_chunk_local,
+            crate::audio::local_stt::check_local_stt_available,
+            crate::audio::local_stt::download_whisper_model,
+            // URL allowlist validation (LOW 26)
+            validate_remote_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -174,10 +185,23 @@ fn register_emit_shortcut(app: &AppHandle, shortcut: Shortcut, event_name: &'sta
         });
     match res {
         Ok(()) => debug!(target: "meetingmind::hotkey", "registered shortcut {label} -> {event_name}"),
-        Err(e) => warn!(
-            target: "meetingmind::hotkey",
-            "failed to register shortcut {label} -> {event_name}: {e}"
-        ),
+        Err(e) => {
+            warn!(
+                target: "meetingmind::hotkey",
+                "failed to register shortcut {label} -> {event_name}: {e}"
+            );
+            // LOW 21 fix: surface the failure so the UI can prompt the user
+            // to remap the chord. Previously this was a silent log-only path
+            // and users had no way to know why their hotkey did nothing.
+            let _ = app.emit(
+                "hotkey_register_failed",
+                serde_json::json!({
+                    "chord": label.clone(),
+                    "event": event_name,
+                    "reason": e.to_string(),
+                }),
+            );
+        }
     }
 }
 
@@ -207,10 +231,20 @@ fn register_overlay_only_shortcut(
             target: "meetingmind::hotkey",
             "registered overlay-only shortcut {label} -> {event_name}"
         ),
-        Err(e) => warn!(
-            target: "meetingmind::hotkey",
-            "failed to register shortcut {label} -> {event_name}: {e}"
-        ),
+        Err(e) => {
+            warn!(
+                target: "meetingmind::hotkey",
+                "failed to register shortcut {label} -> {event_name}: {e}"
+            );
+            let _ = app.emit(
+                "hotkey_register_failed",
+                serde_json::json!({
+                    "chord": label.clone(),
+                    "event": event_name,
+                    "reason": e.to_string(),
+                }),
+            );
+        }
     }
 }
 

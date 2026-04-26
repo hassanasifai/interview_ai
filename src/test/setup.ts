@@ -1,6 +1,37 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+// jsdom doesn't provide `Worker`. The vector-store embedding worker is the
+// only consumer; we mock vectorStore directly below so the constructor never
+// actually fires, but stubbing the global keeps any incidental `new Worker`
+// calls from throwing during module evaluation.
+if (typeof globalThis.Worker === 'undefined') {
+  class NoopWorker {
+    onmessage: ((e: MessageEvent) => void) | null = null;
+    onerror: ((e: ErrorEvent) => void) | null = null;
+    postMessage(): void {}
+    terminate(): void {}
+    addEventListener(): void {}
+    removeEventListener(): void {}
+    dispatchEvent(): boolean {
+      return true;
+    }
+  }
+  vi.stubGlobal('Worker', NoopWorker);
+}
+
+// vectorStore would otherwise spawn a real Worker on first semanticSearch call
+// (knowledge-base + session-runtime tests both exercise that path) and log a
+// `Worker is not defined` warning. Mock semanticSearch to reject so callers
+// fall through to their keyword-search fallback exactly as in production.
+vi.mock('../lib/rag/vectorStore', () => ({
+  embedAndStore: vi.fn(async () => undefined),
+  semanticSearch: vi.fn(async () => {
+    throw new Error('semanticSearch disabled in test environment');
+  }),
+  removeDocVectors: vi.fn(() => undefined),
+}));
+
 // Simple in-memory keychain so integrationStore migration round-trips.
 const __testKeychain = new Map<string, string>();
 

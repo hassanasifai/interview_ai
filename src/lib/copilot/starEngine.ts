@@ -1,4 +1,5 @@
 import type { AIProvider } from '../providers/aiProvider';
+import { tryParseJson } from './jsonRepair';
 
 export type StarAnswer = {
   situation: string;
@@ -30,7 +31,7 @@ export async function composeStar(
 
   try {
     const response = await provider.complete({ systemPrompt: SYSTEM_PROMPT, userPrompt });
-    const parsed = JSON.parse(response) as Partial<StarAnswer>;
+    const parsed = tryParseJson<Partial<StarAnswer>>(response) ?? ({} as Partial<StarAnswer>);
     return {
       situation: parsed.situation ?? 'In a previous role...',
       task: parsed.task ?? 'I was responsible for...',

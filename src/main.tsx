@@ -6,6 +6,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { appendAuditEvent } from './lib/runtime/auditEvents';
 import { logger } from './lib/logger';
 import { startRetentionScheduler } from './lib/runtime/dataMaintenance';
+import { toastStore } from './components/ui';
 
 // G9: Catch every promise rejection and uncaught error that escapes the
 // React boundary so we still get a structured log entry instead of a silent
@@ -40,6 +41,44 @@ if (typeof window !== 'undefined') {
         new CustomEvent('mm:api-down', { detail: { reason: '3 timeouts in 60s' } }),
       );
     }
+  });
+
+  // Bridge keychain / STT / api-down custom events into visible toasts so the
+  // user sees actionable feedback instead of silent dispatch.
+  window.addEventListener('mm:keychain-error', (e: Event) => {
+    const detail = (e as CustomEvent).detail ?? {};
+    toastStore.show({
+      title: detail.op === 'missing' ? 'Add API key in Settings' : 'OS keychain error',
+      description: `Provider: ${detail.provider ?? 'unknown'}`,
+      variant: 'warn',
+    });
+  });
+
+  window.addEventListener('mm:stt-error', (e: Event) => {
+    const detail = (e as CustomEvent).detail ?? {};
+    if (detail.status === 401) {
+      toastStore.show({ title: 'Invalid Groq API key', variant: 'danger' });
+    } else if (detail.status === 429) {
+      toastStore.show({
+        title: 'STT rate-limited',
+        description: 'Will retry shortly',
+        variant: 'warn',
+      });
+    } else {
+      toastStore.show({
+        title: 'STT error',
+        description: String(detail.reason ?? detail.status ?? 'unknown'),
+        variant: 'warn',
+      });
+    }
+  });
+
+  window.addEventListener('mm:api-down', () => {
+    toastStore.show({
+      title: 'API down',
+      description: 'Multiple timeouts in 60s. Falling back to local providers if available.',
+      variant: 'danger',
+    });
   });
 }
 

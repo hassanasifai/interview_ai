@@ -16,6 +16,7 @@
     "shell:allow-open",
     "global-shortcut:default",
     "log:default",
+    "updater:default",
     {
       "identifier": "core:window:allow-create",
       "allow": [

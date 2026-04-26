@@ -2,6 +2,8 @@ import { listen, emit } from '@tauri-apps/api/event';
 import type { TranscriptItem } from '../../store/sessionStore';
 import type { STTProvider } from '../providers/sttProvider';
 import { logger } from '../logger';
+import { createSileroVad, float32ToPcm16Base64, type SileroVadHandle } from '../audio/silero-vad';
+import { useSettingsStore } from '../../store/settingsStore';
 
 type StartCaptureOptions = {
   includeMicrophone: boolean;
@@ -58,7 +60,9 @@ function startAudioLevelMonitor(stream: MediaStream, isActive: () => boolean): (
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-  } catch { /* AudioContext unavailable */ }
+  } catch {
+    /* AudioContext unavailable */
+  }
   return () => {
     if (raf) cancelAnimationFrame(raf);
     if (ctx) ctx.close().catch(() => undefined);
@@ -72,20 +76,32 @@ function wrapPcmAsWav(pcmBase64: string, sampleRate: number): string {
   const buffer = new ArrayBuffer(44 + pcmLen);
   const view = new DataView(buffer);
   // RIFF header
-  view.setUint8(0, 0x52); view.setUint8(1, 0x49); view.setUint8(2, 0x46); view.setUint8(3, 0x46);
+  view.setUint8(0, 0x52);
+  view.setUint8(1, 0x49);
+  view.setUint8(2, 0x46);
+  view.setUint8(3, 0x46);
   view.setUint32(4, 36 + pcmLen, true);
-  view.setUint8(8, 0x57); view.setUint8(9, 0x41); view.setUint8(10, 0x56); view.setUint8(11, 0x45);
+  view.setUint8(8, 0x57);
+  view.setUint8(9, 0x41);
+  view.setUint8(10, 0x56);
+  view.setUint8(11, 0x45);
   // fmt chunk
-  view.setUint8(12, 0x66); view.setUint8(13, 0x6d); view.setUint8(14, 0x74); view.setUint8(15, 0x20);
-  view.setUint32(16, 16, true);            // chunk size
-  view.setUint16(20, 1, true);             // PCM format
-  view.setUint16(22, 1, true);             // mono
+  view.setUint8(12, 0x66);
+  view.setUint8(13, 0x6d);
+  view.setUint8(14, 0x74);
+  view.setUint8(15, 0x20);
+  view.setUint32(16, 16, true); // chunk size
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, 1, true); // mono
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, sampleRate * 2, true); // byte rate (2 bytes/sample)
-  view.setUint16(32, 2, true);             // block align
-  view.setUint16(34, 16, true);            // bits per sample
+  view.setUint16(32, 2, true); // block align
+  view.setUint16(34, 16, true); // bits per sample
   // data chunk
-  view.setUint8(36, 0x64); view.setUint8(37, 0x61); view.setUint8(38, 0x74); view.setUint8(39, 0x61);
+  view.setUint8(36, 0x64);
+  view.setUint8(37, 0x61);
+  view.setUint8(38, 0x74);
+  view.setUint8(39, 0x61);
   view.setUint32(40, pcmLen, true);
   for (let i = 0; i < pcmLen; i++) view.setUint8(44 + i, bin.charCodeAt(i));
   // Encode buffer to base64
@@ -178,7 +194,12 @@ function makeQueue(
 }
 
 export async function startLiveCapture(options: StartCaptureOptions): Promise<ActiveCapture> {
-  if (typeof MediaRecorder === 'undefined') {
+  // Read VAD engine selection up-front. Silero handles voice gating inside its
+  // WASM module and bypasses MediaRecorder entirely, so we only require the
+  // browser MediaRecorder API for the legacy RMS path.
+  const vadEngine = (useSettingsStore.getState() as { vadEngine?: string }).vadEngine ?? 'rms';
+
+  if (vadEngine !== 'silero' && typeof MediaRecorder === 'undefined') {
     throw new Error('MediaRecorder is not supported in this runtime.');
   }
   if (!navigator.mediaDevices?.getUserMedia) {
@@ -230,11 +251,11 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
    */
   function wirePcmCapture(stream: MediaStream, queue: ReturnType<typeof makeQueue>): () => void {
     const TARGET_SR = 16_000;
-    const VAD_RMS = 0.015;              // speech threshold (RMS of [-1, 1] Float32)
-    const PRE_ROLL_MS = 250;            // include a bit before speech starts (avoid clipped word onsets)
-    const HANGOVER_MS = 700;            // silence after which we flush the utterance
-    const MIN_UTTER_MS = 400;           // ignore tiny noises shorter than this
-    const MAX_UTTER_MS = 12_000;        // cap utterances at 12s to bound request size
+    const VAD_RMS = 0.015; // speech threshold (RMS of [-1, 1] Float32)
+    const PRE_ROLL_MS = 250; // include a bit before speech starts (avoid clipped word onsets)
+    const HANGOVER_MS = 700; // silence after which we flush the utterance
+    const MIN_UTTER_MS = 400; // ignore tiny noises shorter than this
+    const MAX_UTTER_MS = 12_000; // cap utterances at 12s to bound request size
 
     const ctx = new AudioContext();
     if (ctx.state === 'suspended') ctx.resume().catch(() => undefined);
@@ -258,12 +279,16 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
 
     function flushUtterance() {
       if (!utter || utterCursor === 0) {
-        utter = null; utterCursor = 0; speaking = false;
+        utter = null;
+        utterCursor = 0;
+        speaking = false;
         return;
       }
       const durationMs = (utterCursor / TARGET_SR) * 1000;
       if (durationMs < MIN_UTTER_MS) {
-        utter = null; utterCursor = 0; speaking = false;
+        utter = null;
+        utterCursor = 0;
+        speaking = false;
         return;
       }
       // Convert Float32 → Int16 PCM
@@ -283,32 +308,29 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
       const wavBytes = Uint8Array.from(atob(wavBase64), (c) => c.charCodeAt(0));
       const wavBlob = new Blob([wavBytes], { type: 'audio/wav' });
       queue.push(wavBlob);
-      utter = null; utterCursor = 0; speaking = false;
+      utter = null;
+      utterCursor = 0;
+      speaking = false;
     }
 
-    proc.onaudioprocess = (event) => {
+    // Per-block VAD + utterance buffer state machine. Extracted so the
+    // AudioWorklet path (preferred) and the legacy ScriptProcessor path
+    // (fallback) can share it.
+    function processBlock(input: Float32Array, rms: number): void {
       if (!active) return;
-      const input = event.inputBuffer.getChannelData(0);
-      // Compute block RMS on the source (pre-decimation) for fast VAD
-      let energy = 0;
-      for (let i = 0; i < input.length; i++) energy += input[i] * input[i];
-      const rms = Math.sqrt(energy / input.length);
       const now = performance.now();
-
-      // Decimate to 16kHz
+      // Decimate to 16kHz (uses the same nearest-sample strategy as the
+      // prior implementation; the upstream WASAPI Rust path now applies a
+      // proper FIR low-pass before decimation, so this stays cheap).
       const decimated: number[] = [];
       for (let i = 0; i < input.length; i += decimation) {
         decimated.push(input[Math.floor(i)] || 0);
       }
-
       if (rms >= VAD_RMS) {
-        // Speech detected
         if (!speaking) {
-          // Start a new utterance — seed with the pre-roll buffer
           utter = new Float32Array(maxUtterSamples);
           utterCursor = 0;
           if (preRollFilled) {
-            // unwrap ring buffer
             const tail = preRoll.subarray(preRollCursor);
             const head = preRoll.subarray(0, preRollCursor);
             utter.set(tail, 0);
@@ -321,21 +343,17 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
           speaking = true;
           utterStartedAt = now;
         }
-        // Append decimated samples
         if (utter) {
           for (let i = 0; i < decimated.length && utterCursor < utter.length; i++) {
             utter[utterCursor++] = decimated[i];
           }
         }
         lastSpeechAt = now;
-        // Force-cut if we exceed max
-        if (utter && (now - utterStartedAt) > MAX_UTTER_MS) {
+        if (utter && now - utterStartedAt > MAX_UTTER_MS) {
           flushUtterance();
         }
       } else {
-        // Silence
         if (speaking && utter) {
-          // Still record a bit of trailing silence in case speech resumes
           for (let i = 0; i < decimated.length && utterCursor < utter.length; i++) {
             utter[utterCursor++] = decimated[i];
           }
@@ -343,7 +361,6 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
             flushUtterance();
           }
         } else {
-          // Maintain pre-roll ring buffer for next utterance
           for (let i = 0; i < decimated.length; i++) {
             preRoll[preRollCursor] = decimated[i];
             preRollCursor = (preRollCursor + 1) % preRollSamples;
@@ -351,20 +368,151 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
           }
         }
       }
+    }
+
+    // A1 fix: prefer AudioWorklet (audio render thread) over the deprecated
+    // ScriptProcessorNode. We attempt the worklet first; on failure (Safari
+    // versions without the API, missing module path, etc.) we fall back to
+    // the legacy ScriptProcessor path.
+    let workletNode: AudioWorkletNode | null = null;
+    let scriptNode: ScriptProcessorNode | null = null;
+
+    const tryWorklet = async () => {
+      if (typeof AudioWorkletNode === 'undefined' || !ctx.audioWorklet) {
+        throw new Error('AudioWorklet unavailable');
+      }
+      // The worklet ships in /public so Vite serves it at the site root.
+      await ctx.audioWorklet.addModule('/pcm-capture.worklet.js');
+      const node = new AudioWorkletNode(ctx, 'pcm-capture-processor');
+      node.port.onmessage = (ev: MessageEvent<{ rms: number; samples: Float32Array }>) => {
+        if (!active) return;
+        const { rms, samples } = ev.data;
+        processBlock(samples, rms);
+      };
+      source.connect(node);
+      // The processor has no audio output of its own — connect to a
+      // GainNode at zero so the graph keeps pulling frames without
+      // producing audible passthrough.
+      const sink = ctx.createGain();
+      sink.gain.value = 0;
+      node.connect(sink).connect(ctx.destination);
+      workletNode = node;
     };
 
-    source.connect(proc);
-    proc.connect(ctx.destination);
+    tryWorklet().catch((err) => {
+      logger.warn(
+        'liveCaptureOrchestrator',
+        'AudioWorklet path unavailable, falling back to ScriptProcessorNode',
+        { err: String(err) },
+      );
+      scriptNode = proc;
+      proc.onaudioprocess = (event) => {
+        const input = event.inputBuffer.getChannelData(0);
+        let energy = 0;
+        for (let i = 0; i < input.length; i++) energy += input[i] * input[i];
+        const rms = Math.sqrt(energy / input.length);
+        processBlock(input, rms);
+      };
+      source.connect(proc);
+      proc.connect(ctx.destination);
+    });
+
     return () => {
-      // Final flush so trailing speech isn't lost
       if (speaking) flushUtterance();
-      try { proc.disconnect(); } catch { /* ignore */ }
-      try { source.disconnect(); } catch { /* ignore */ }
+      try {
+        workletNode?.port.close();
+      } catch {
+        /* ignore */
+      }
+      try {
+        workletNode?.disconnect();
+      } catch {
+        /* ignore */
+      }
+      try {
+        scriptNode?.disconnect();
+      } catch {
+        /* ignore */
+      }
+      try {
+        source.disconnect();
+      } catch {
+        /* ignore */
+      }
       ctx.close().catch(() => undefined);
     };
   }
 
-  if (options.includeMicrophone) {
+  let sileroHandle: SileroVadHandle | null = null;
+
+  if (options.includeMicrophone && vadEngine === 'silero') {
+    // Silero VAD path: neural utterance detection inside @ricky0123/vad-web's
+    // WASM module. The library opens its own mic stream, runs VAD frame-by-
+    // frame, and emits Float32 PCM at 16kHz on `onSpeechEnd` — we wrap that
+    // as WAV and ship to STT directly. No MediaRecorder, no manual RMS gate.
+    try {
+      const settingsSnap = useSettingsStore.getState() as {
+        sileroPositiveThreshold?: number;
+        sileroRedemptionFrames?: number;
+      };
+      // Silero v5 frame size at 16kHz is 512 samples = 32ms
+      const SILERO_FRAME_MS = 32;
+      const redemptionFrames = settingsSnap.sileroRedemptionFrames ?? 8;
+      const handle = await createSileroVad({
+        positiveSpeechThreshold: settingsSnap.sileroPositiveThreshold ?? 0.45,
+        redemptionMs: redemptionFrames * SILERO_FRAME_MS,
+        onSpeechEnd: (audio) => {
+          if (!active) return;
+          const pcmBase64 = float32ToPcm16Base64(audio);
+          const wavBase64 = wrapPcmAsWav(pcmBase64, 16_000);
+          options.micSttProvider
+            .transcribeChunk({
+              base64Audio: wavBase64,
+              mimeType: 'audio/wav',
+              channel: 'microphone',
+              ...(options.language !== undefined ? { language: options.language } : {}),
+            })
+            .then(async (result) => {
+              if (!active || !result.text.trim()) return;
+              await options.onTranscript({
+                id: `silero-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                speaker: 'user',
+                text: result.text,
+                timestamp: Date.now(),
+              });
+            })
+            .catch((err) => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                  new CustomEvent('mm:stt-error', {
+                    detail: { reason: String(err), channel: 'microphone' },
+                  }),
+                );
+              }
+            });
+        },
+      });
+      sileroHandle = handle;
+      await sileroHandle.start();
+      cleanupFns.push(() => {
+        // Fire-and-forget: stop() is async but cleanupFns are sync; the
+        // destroy() inside also nulls _instance for next session.
+        const h = sileroHandle;
+        sileroHandle = null;
+        h?.destroy().catch(() => undefined);
+      });
+    } catch (err) {
+      logger.warn('liveCaptureOrchestrator', 'Silero VAD init failed — falling back to RMS path', {
+        err: String(err),
+      });
+      sileroHandle = null;
+    }
+  }
+
+  // RMS / MediaRecorder fallback path: also used when vadEngine === 'rms' or
+  // when Silero failed to initialize (missing WASM, mic permission denied
+  // inside the lib, etc).
+  if (options.includeMicrophone && !sileroHandle) {
     const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     streams.push(micStream);
     cleanupFns.push(wirePcmCapture(micStream, micQueue));
@@ -410,6 +558,48 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
   );
   cleanupFns.push(unlistenMic);
 
+  // A6 fix: WASAPI loopback emits `native_audio_chunk` for system audio.
+  // Route it to the system queue so the interviewer's voice is captured even
+  // when the user hasn't granted getDisplayMedia. This eliminates the dead
+  // path called out in AUDIT §19/A6 and frees up Groq RPM (no double-capture).
+  const unlistenNative = await listen<{
+    source?: string;
+    pcmBase64: string;
+    sampleRateHz?: number;
+    channels?: number;
+    timestampMs?: number;
+  }>('native_audio_chunk', (event) => {
+    if (!active) return;
+    const { pcmBase64, sampleRateHz } = event.payload;
+    const wavBase64 = wrapPcmAsWav(pcmBase64, sampleRateHz || 16_000);
+    options.systemSttProvider
+      .transcribeChunk({
+        mimeType: 'audio/wav',
+        base64Audio: wavBase64,
+        channel: 'system',
+        ...(options.language !== undefined ? { language: options.language } : {}),
+      })
+      .then(async (result) => {
+        if (!active || !result.text.trim()) return;
+        await options.onTranscript({
+          id: `native-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          speaker: 'customer',
+          text: result.text,
+          timestamp: Date.now(),
+        });
+      })
+      .catch((err) => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('mm:stt-error', {
+              detail: { reason: String(err), channel: 'system' },
+            }),
+          );
+        }
+      });
+  });
+  cleanupFns.push(unlistenNative);
+
   // System audio capture is opt-in via getDisplayMedia. On Groq's free tier
   // (20 RPM) running both mic + system halves capacity per channel; many
   // shared windows have no audio track at all and produce 400s. We still
@@ -427,10 +617,16 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
         const audioOnly = new MediaStream(audioTracks);
         cleanupFns.push(wirePcmCapture(audioOnly, systemQueue));
       } else {
-        logger.warn('liveCaptureOrchestrator', 'No audio track in shared source — system capture skipped', {});
+        logger.warn(
+          'liveCaptureOrchestrator',
+          'No audio track in shared source — system capture skipped',
+          {},
+        );
       }
     } catch (err) {
-      logger.warn('liveCaptureOrchestrator', 'System audio capture cancelled', { err: String(err) });
+      logger.warn('liveCaptureOrchestrator', 'System audio capture cancelled', {
+        err: String(err),
+      });
     }
   }
 
@@ -448,6 +644,7 @@ export async function startLiveCapture(options: StartCaptureOptions): Promise<Ac
 
 export async function setupAutoActivation(onActivate: () => void): Promise<() => void> {
   let lastActivationTime = 0;
+  let lastShareState: boolean | null = null;
   let cancelled = false;
 
   // Cancel-token pattern: even though we await registration here, the inner
@@ -472,6 +669,22 @@ export async function setupAutoActivation(onActivate: () => void): Promise<() =>
         lastActivationTime = now;
         onActivate();
       }
+
+      // Active screen-share detection: dispatch on transitions so the dashboard
+      // can auto-relocate the overlay onto a non-shared monitor. Window event
+      // (broadcast across windows) so the overlay window itself can react.
+      const sharing = isScreenShareActiveSync(title, processName);
+      if (lastShareState !== sharing) {
+        lastShareState = sharing;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('mm:share-mode-changed', {
+              detail: { sharing, title, processName },
+            }),
+          );
+        }
+        emit('mm:share-mode-changed', { sharing }).catch(() => undefined);
+      }
     },
   );
 
@@ -479,4 +692,13 @@ export async function setupAutoActivation(onActivate: () => void): Promise<() =>
     cancelled = true;
     unlisten();
   };
+}
+
+// Local copy to avoid importing from meetingDetector at module load time.
+function isScreenShareActiveSync(title: string | null, processName: string | null): boolean {
+  const haystack = `${title ?? ''} ${processName ?? ''}`.toLowerCase();
+  if (haystack.trim().length === 0) return false;
+  return /\bis sharing\b|\bsharing screen\b|\bsharing your screen\b|\bscreen sharing\b|\bpresenting\b|\[sharing\]|\(sharing\)/i.test(
+    haystack,
+  );
 }

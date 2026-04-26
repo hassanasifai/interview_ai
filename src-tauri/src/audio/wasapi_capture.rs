@@ -28,14 +28,25 @@ pub struct WasapiLoopbackCapture {
 impl WasapiLoopbackCapture {
     #[cfg(target_os = "windows")]
     pub fn start(app: AppHandle) -> Result<Self, String> {
-        use windows::Win32::System::Com::{CoInitializeEx, COINIT_MULTITHREADED};
+        use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_MULTITHREADED};
 
         let stop_flag = Arc::new(AtomicBool::new(false));
         let flag = stop_flag.clone();
 
+        // RAII guard so CoUninitialize is called when the capture thread
+        // exits via any path (success, error, or panic). Without this the
+        // COM apartment leaks on every restart.
+        struct ComGuard;
+        impl Drop for ComGuard {
+            fn drop(&mut self) {
+                unsafe { CoUninitialize() };
+            }
+        }
+
         let thread = std::thread::spawn(move || {
             // COM must be initialized per-thread.
             let _ = unsafe { CoInitializeEx(None, COINIT_MULTITHREADED) };
+            let _com_guard = ComGuard;
 
             // G29: signal successful (re)start so the UI can clear any
             // "system audio device lost" banner from a prior session.
@@ -225,7 +236,9 @@ impl WasapiLoopbackCapture {
                         chunk_buf.extend_from_slice(&resampled);
                     }
 
-                    let _ = capture_client.ReleaseBuffer(num_frames);
+                    if let Err(release_err) = capture_client.ReleaseBuffer(num_frames) {
+                        log::warn!("WASAPI ReleaseBuffer failed: {release_err}");
+                    }
 
                     if chunk_buf.len() >= samples_per_chunk {
                         // VAD gate — only emit if speech is detected, with a hangover window
@@ -302,6 +315,11 @@ impl Drop for WasapiLoopbackCapture {
 
 /// Convert raw PCM bytes to mono i16 samples.
 fn convert_to_mono_i16(raw: &[u8], channels: usize, bits_per_sample: u16) -> Vec<i16> {
+    // WASAPI in error/transition states can momentarily report nChannels=0;
+    // guard before dividing or using as a stride to avoid div-by-zero panic.
+    if channels == 0 {
+        return Vec::new();
+    }
     match bits_per_sample {
         16 => {
             let samples_per_channel = raw.len() / (channels * 2);
@@ -346,25 +364,98 @@ fn convert_to_mono_i16(raw: &[u8], channels: usize, bits_per_sample: u16) -> Vec
     }
 }
 
-/// Linear resampling from source_rate to target_rate.
+/// Anti-aliased resampling from `source_rate` to `target_rate`.
+///
+/// AUDIT §24/A2 fix: replaces the prior linear-interpolation path. When we
+/// down-sample (e.g. 48 kHz → 16 kHz) without low-pass filtering first, any
+/// content above the Nyquist of the target rate (8 kHz here) folds back into
+/// the audible band as aliasing — corrupting Whisper transcription quality.
+///
+/// This implementation runs a windowed-sinc FIR low-pass with a Hann window
+/// and a 31-tap kernel before linear interpolation. The cost is ~30 mul-adds
+/// per output sample, which is well under our ~1.5s buffering budget per
+/// chunk on the WASAPI thread.
 fn resample(samples: &[i16], source_rate: u32, target_rate: u32) -> Vec<i16> {
     if source_rate == target_rate || samples.is_empty() {
         return samples.to_vec();
     }
+    // Only filter when down-sampling (target < source). Up-sampling does not
+    // alias — linear interpolation is acceptable.
+    let need_lowpass = target_rate < source_rate;
 
+    // Convert to f32 for the filter pass.
+    let mut staged: Vec<f32> = samples.iter().map(|&s| s as f32).collect();
+
+    if need_lowpass {
+        // Cutoff at 0.45 × Nyquist of the *target* rate, normalised to source.
+        let cutoff = 0.45f32 * (target_rate as f32) / (source_rate as f32);
+        let kernel = build_lowpass_kernel(31, cutoff);
+        staged = convolve(&staged, &kernel);
+    }
+
+    // Now decimate with linear interpolation on the filtered signal.
     let ratio = source_rate as f64 / target_rate as f64;
-    let out_len = ((samples.len() as f64) / ratio).ceil() as usize;
+    let out_len = ((staged.len() as f64) / ratio).ceil() as usize;
     let mut out = Vec::with_capacity(out_len);
-
     for i in 0..out_len {
         let src_idx = i as f64 * ratio;
         let lo = src_idx.floor() as usize;
-        let hi = (lo + 1).min(samples.len() - 1);
-        let frac = src_idx - lo as f64;
-        let interpolated =
-            samples[lo] as f64 * (1.0 - frac) + samples[hi] as f64 * frac;
-        out.push(interpolated.round() as i16);
+        let hi = (lo + 1).min(staged.len().saturating_sub(1));
+        if lo >= staged.len() {
+            break;
+        }
+        let frac = (src_idx - lo as f64) as f32;
+        let interpolated = staged[lo] * (1.0 - frac) + staged[hi] * frac;
+        out.push(interpolated.clamp(-32768.0, 32767.0).round() as i16);
     }
+    out
+}
 
+/// Hann-windowed sinc low-pass filter kernel. `cutoff` is normalised to the
+/// source sample rate (0.0..=0.5).
+fn build_lowpass_kernel(taps: usize, cutoff: f32) -> Vec<f32> {
+    use std::f32::consts::PI;
+    let mut k = vec![0f32; taps];
+    let m = (taps - 1) as f32;
+    let c = cutoff.clamp(0.001, 0.499);
+    let mut sum = 0f32;
+    for (i, slot) in k.iter_mut().enumerate() {
+        let n = i as f32 - m / 2.0;
+        let sinc = if n.abs() < 1e-9 {
+            2.0 * c
+        } else {
+            (2.0 * PI * c * n).sin() / (PI * n)
+        };
+        let hann = 0.5 - 0.5 * (2.0 * PI * (i as f32) / m).cos();
+        *slot = sinc * hann;
+        sum += *slot;
+    }
+    // Normalise so DC gain == 1.
+    if sum.abs() > 1e-9 {
+        for v in &mut k {
+            *v /= sum;
+        }
+    }
+    k
+}
+
+/// Direct-form FIR convolution. Input length is preserved (zero-pads at edges).
+fn convolve(input: &[f32], kernel: &[f32]) -> Vec<f32> {
+    if kernel.is_empty() {
+        return input.to_vec();
+    }
+    let n = input.len();
+    let half = kernel.len() / 2;
+    let mut out = vec![0f32; n];
+    for (i, slot) in out.iter_mut().enumerate() {
+        let mut acc = 0f32;
+        for (j, &coeff) in kernel.iter().enumerate() {
+            let src_idx = i as isize + j as isize - half as isize;
+            if src_idx >= 0 && (src_idx as usize) < n {
+                acc += input[src_idx as usize] * coeff;
+            }
+        }
+        *slot = acc;
+    }
     out
 }

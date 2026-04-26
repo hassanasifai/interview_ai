@@ -17,6 +17,11 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  optimizeDeps: {
+    // ORT/Silero ship their own WASM + ONNX assets; let Vite serve them as static files
+    // from /public instead of trying to optimize them.
+    exclude: ['onnxruntime-web', '@ricky0123/vad-web'],
+  },
   build: {
     target: 'esnext',
     sourcemap: true,
@@ -51,6 +56,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    exclude: ['node_modules', 'dist', 'src-tauri', 'e2e/**', '**/playwright/**'],
+    exclude: [
+      'node_modules',
+      'dist',
+      'src-tauri',
+      'e2e/**',
+      '**/playwright/**',
+      '.claude/worktrees/**',
+    ],
   },
 });

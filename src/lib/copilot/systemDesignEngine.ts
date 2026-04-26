@@ -1,4 +1,5 @@
 import type { AIProvider } from '../providers/aiProvider';
+import { tryParseJson } from './jsonRepair';
 
 export type SystemDesignAnswer = {
   requirements: string[];
@@ -26,7 +27,8 @@ export async function composeSystemDesign(
 
   try {
     const response = await provider.complete({ systemPrompt: SYSTEM_PROMPT, userPrompt });
-    const parsed = JSON.parse(response) as Partial<SystemDesignAnswer>;
+    const parsed =
+      tryParseJson<Partial<SystemDesignAnswer>>(response) ?? ({} as Partial<SystemDesignAnswer>);
     return {
       requirements: Array.isArray(parsed.requirements) ? parsed.requirements : [],
       highLevelComponents: Array.isArray(parsed.highLevelComponents)

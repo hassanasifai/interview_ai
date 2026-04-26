@@ -44,3 +44,11 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# ── Graphify local-only files ───────────────────────────────────────────────
+graphify-out/cache/
+graphify-out/manifest.json
+graphify-out/cost.json
+
+# ── Claude Code / Codex internal scratch (never commit) ────────────────────
+.claude/worktrees/

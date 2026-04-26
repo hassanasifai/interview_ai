@@ -65,46 +65,26 @@ function newRequestId(): string {
 }
 
 // Cached reference to the zustand store so we can read sessionId synchronously
-// at fire-time without forcing an eager import (which would create a cycle
-// with feature/* code that depends on auditEvents).
+// at fire-time. App.tsx injects the store via setSessionStoreRef during boot;
+// this avoids the import cycle that an eager `import { useSessionStore }`
+// would create with feature/* code that depends on auditEvents.
 type StoreLike = {
   getState: () => { sessionId?: string | null };
 };
 let _storeRef: StoreLike | null = null;
-let _storeLoading = false;
 
-async function loadStore() {
-  if (_storeRef || _storeLoading) return;
-  _storeLoading = true;
-  try {
-    const mod = (await import('../../store/sessionStore')) as unknown as {
-      useSessionStore?: StoreLike;
-    };
-    if (mod.useSessionStore && typeof mod.useSessionStore.getState === 'function') {
-      _storeRef = mod.useSessionStore;
-    }
-  } catch (err) {
-    // Store not available (test/SSR). Session id stays null.
-    logger.debug('auditEvents', 'sessionStore lazy-load failed', { err: String(err) });
-  } finally {
-    _storeLoading = false;
-  }
+export function setSessionStoreRef(store: StoreLike): void {
+  _storeRef = store;
 }
 
 function resolveSessionId(): string | null {
-  if (_storeRef) {
-    try {
-      return _storeRef.getState().sessionId ?? null;
-    } catch (err) {
-      logger.debug('auditEvents', 'sessionId read failed', { err: String(err) });
-      return null;
-    }
+  if (!_storeRef) return null;
+  try {
+    return _storeRef.getState().sessionId ?? null;
+  } catch (err) {
+    logger.debug('auditEvents', 'sessionId read failed', { err: String(err) });
+    return null;
   }
-  // Kick off async load; subsequent events will pick up the id.
-  loadStore().catch((err) => {
-    logger.debug('auditEvents', 'loadStore rejected', { err: String(err) });
-  });
-  return null;
 }
 
 // ── Dedupe (≤5 of the same (type, msg) per minute) ──────────────────────────

@@ -9,6 +9,7 @@ pub mod click_through;
 pub mod keychain;
 pub mod meeting_daemon;
 pub mod monitor_info;
+pub mod native_ocr;
 
 pub use capture_exclusion::{
     get_capture_exclusion_support, reapply_capture_exclusion_all, set_capture_excluded,
@@ -70,8 +71,7 @@ const URL_ALLOWLIST: &[&str] = &[
     "https://api.github.com/",
 ];
 
-// TODO(1A-followup): register validate_remote_url in lib.rs invoke_handler!
-#[allow(dead_code)]
+// LOW 26 fix: now registered in lib.rs invoke_handler.
 #[tauri::command]
 pub fn validate_remote_url(url: String) -> Result<(), String> {
     if !url.starts_with("https://") {
@@ -264,8 +264,25 @@ pub async fn transcribe_audio_chunk(
 
 // ── Screen capture ────────────────────────────────────────────────────────────
 
+/// Inspect a screenshot-crate error string and decide if it represents a
+/// permission revoke (DXGI_ERROR_ACCESS_DENIED on Windows, TCC denial on
+/// macOS, the "no displays" path on locked Linux sessions). Used by
+/// capture_screen_region to emit `screen_capture_lost` so the UI can
+/// surface a "re-grant capture permission" toast (S2 fix).
+fn is_screen_capture_revoked(err: &str) -> bool {
+    let l = err.to_ascii_lowercase();
+    l.contains("0x887a0004")
+        || l.contains("dxgi_error_access_denied")
+        || l.contains("access is denied")
+        || l.contains("permission denied")
+        || l.contains("not allowed")
+        || l.contains("tcc")
+        || l.contains("declined")
+}
+
 #[tauri::command]
 pub fn capture_screen_region(
+    app: AppHandle,
     x: i64,
     y: i64,
     width: i64,
@@ -274,8 +291,18 @@ pub fn capture_screen_region(
     use base64::Engine;
     use screenshots::Screen;
 
-    let screens = Screen::all().map_err(|e| format!("Screen::all failed: {e}"))?;
-    let screen = screens.first().ok_or("No screens found")?;
+    let screens = Screen::all().map_err(|e| {
+        let msg = format!("Screen::all failed: {e}");
+        if is_screen_capture_revoked(&msg) {
+            let _ = app.emit("screen_capture_lost", serde_json::json!({ "reason": msg.clone() }));
+        }
+        msg
+    })?;
+    let screen = screens.first().ok_or_else(|| {
+        let msg = "No screens found".to_string();
+        let _ = app.emit("screen_capture_lost", serde_json::json!({ "reason": msg.clone() }));
+        msg
+    })?;
     let screen_w = screen.display_info.width as i64;
     let screen_h = screen.display_info.height as i64;
 
@@ -288,14 +315,26 @@ pub fn capture_screen_region(
         ));
     }
 
-    let image = if width > 0 && height > 0 {
+    let capture_result = if width > 0 && height > 0 {
         screen
             .capture_area(x as i32, y as i32, width as u32, height as u32)
-            .map_err(|e| format!("capture_area failed: {e}"))?
+            .map_err(|e| format!("capture_area failed: {e}"))
     } else {
-        screen
-            .capture()
-            .map_err(|e| format!("capture failed: {e}"))?
+        screen.capture().map_err(|e| format!("capture failed: {e}"))
+    };
+    let image = match capture_result {
+        Ok(img) => img,
+        Err(msg) => {
+            // S2 fix: emit screen_capture_lost so the renderer can prompt
+            // for re-grant. The UI listens for this on the dashboard.
+            if is_screen_capture_revoked(&msg) {
+                let _ = app.emit(
+                    "screen_capture_lost",
+                    serde_json::json!({ "reason": msg.clone() }),
+                );
+            }
+            return Err(msg);
+        }
     };
 
     // Encode RgbaImage to PNG bytes using the image crate's write_to method
@@ -318,14 +357,17 @@ pub fn capture_screen_region(
 // ── OCR ───────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn run_ocr_on_image(_image_base64: String) -> Result<OcrResult, String> {
-    // Native OCR via leptess/Tesseract requires system Tesseract installation.
-    // The browser Tesseract.js fallback in tauri.ts handles this path.
-    Ok(OcrResult {
-        text: String::new(),
-        confidence: 0.0,
-        note: "OCR handled by browser Tesseract.js worker.".to_string(),
-    })
+pub fn run_ocr_on_image(image_base64: String) -> Result<OcrResult, String> {
+    // Native OCR (Windows.Media.Ocr on Win10+; renderer tesseract.js fallback
+    // for unsupported platforms or when WinRT initialisation fails).
+    match native_ocr::run_native_ocr(&image_base64) {
+        Ok(result) => Ok(result),
+        Err(err) => Ok(OcrResult {
+            text: String::new(),
+            confidence: 0.0,
+            note: format!("Native OCR failed ({err}); falling back to renderer worker."),
+        }),
+    }
 }
 
 // ── Active window info ────────────────────────────────────────────────────────
@@ -601,7 +643,7 @@ pub fn list_mic_devices() -> Result<Vec<serde_json::Value>, String> {
 }
 
 // VAD threshold stored as a global Atomic so it can be updated at runtime.
-static VAD_THRESHOLD: std::sync::atomic::AtomicI16 = std::sync::atomic::AtomicI16::new(300);
+static VAD_THRESHOLD: std::sync::atomic::AtomicI16 = std::sync::atomic::AtomicI16::new(120);
 
 pub(crate) fn get_vad_threshold_internal() -> i16 {
     VAD_THRESHOLD.load(std::sync::atomic::Ordering::Relaxed)

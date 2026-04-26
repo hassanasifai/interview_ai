@@ -43,7 +43,15 @@ function tokenize(text: string) {
 function readState(): RepositoryState {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return { documents: [], chunks: {} };
-  return JSON.parse(raw) as RepositoryState;
+  try {
+    return JSON.parse(raw) as RepositoryState;
+  } catch (err) {
+    logger.warn('knowledgeRepository', 'corrupt persisted state; resetting', {
+      err: String(err),
+    });
+    localStorage.removeItem(STORAGE_KEY);
+    return { documents: [], chunks: {} };
+  }
 }
 
 function writeState(state: RepositoryState) {
@@ -148,7 +156,11 @@ export function createKnowledgeRepository() {
           score: r.score,
         }));
       } catch (err) {
-        logger.warn('knowledge', 'semantic search failed, falling back to keyword', {
+        // Fallback to keyword search is by design — the embedding worker may
+        // be unavailable on hardware that lacks ONNX support, in test envs,
+        // or when the worker hasn't warmed up yet. Log at debug level so this
+        // expected branch doesn't pollute stderr.
+        logger.debug('knowledge', 'semantic search failed, falling back to keyword', {
           err: String(err),
         });
         results = keywordSearch(query, allChunks, maxResults);

@@ -1,2 +1,1 @@
-npm test -- --run
-cd src-tauri && cargo check
+npm test -- --run && (cd src-tauri && cargo check)

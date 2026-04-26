@@ -73,39 +73,19 @@ type StoreLike = {
   getState: () => { sessionId?: string | null };
 };
 let _storeRef: StoreLike | null = null;
-let _storeLoading = false;
 
-async function loadStore() {
-  if (_storeRef || _storeLoading) return;
-  _storeLoading = true;
-  try {
-    const mod = (await import('../store/sessionStore')) as unknown as {
-      useSessionStore?: StoreLike;
-    };
-    if (mod.useSessionStore && typeof mod.useSessionStore.getState === 'function') {
-      _storeRef = mod.useSessionStore;
-    }
-  } catch (err) {
-    // Tests / SSR — leave session id as null.
-    logger.debug('auditLogger', 'sessionStore lazy-load failed', { err: String(err) });
-  } finally {
-    _storeLoading = false;
-  }
+export function setSessionStoreRef(store: StoreLike): void {
+  _storeRef = store;
 }
 
 function resolveSessionId(): string | null {
-  if (_storeRef) {
-    try {
-      return _storeRef.getState().sessionId ?? null;
-    } catch (err) {
-      logger.debug('auditLogger', 'sessionId read failed', { err: String(err) });
-      return null;
-    }
+  if (!_storeRef) return null;
+  try {
+    return _storeRef.getState().sessionId ?? null;
+  } catch (err) {
+    logger.debug('auditLogger', 'sessionId read failed', { err: String(err) });
+    return null;
   }
-  loadStore().catch((err) => {
-    logger.debug('auditLogger', 'loadStore rejected', { err: String(err) });
-  });
-  return null;
 }
 
 // ── Dedupe ───────────────────────────────────────────────────────────────────

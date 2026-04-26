@@ -89,7 +89,10 @@ export class ResilientGroqProvider implements AIProvider {
 
   /**
    * Streaming variant with retry logic. Falls back to the same fallback JSON
-   * string (without streaming) if all retries are exhausted.
+   * string if all retries are exhausted. LOW 19 fix: when we have to surface
+   * the fallback we now stream it in word-sized chunks so the overlay renders
+   * progressively instead of popping the whole blob at once. The total bytes
+   * emitted are unchanged.
    */
   async stream(
     payload: { systemPrompt: string; userPrompt: string },
@@ -101,7 +104,7 @@ export class ResilientGroqProvider implements AIProvider {
       } catch {
         if (attempt === this.maxRetries) {
           const fallback = buildPrimaryFallback();
-          onChunk(fallback);
+          await streamFallback(fallback, onChunk);
           return fallback;
         }
 
@@ -110,7 +113,23 @@ export class ResilientGroqProvider implements AIProvider {
     }
 
     const fallback = buildEmptyFallback();
-    onChunk(fallback);
+    await streamFallback(fallback, onChunk);
     return fallback;
+  }
+}
+
+/**
+ * Emit a string as a series of small chunks so the consuming UI can animate
+ * the fallback the same way a real provider stream would. We split on
+ * whitespace boundaries (preserving the spaces) and pace at ~20ms per chunk
+ * to roughly match Groq's streaming TTFT cadence.
+ */
+async function streamFallback(text: string, onChunk: (chunk: string) => void): Promise<void> {
+  const tokens = text.match(/\s+|\S+/g) ?? [text];
+  for (const t of tokens) {
+    onChunk(t);
+    // 20ms gives ~50 chunks/second — perceptually streamed, still completes
+    // in well under a second for the typical 200-char fallback.
+    await wait(20);
   }
 }

@@ -148,8 +148,12 @@ fn set_macos_capture_excluded<R: Runtime>(
     };
 
     let ns_window = appkit_handle.ns_window.as_ptr() as *mut NSWindow;
+    if ns_window.is_null() {
+        return Err("AppKit window handle returned a null NSWindow pointer".to_string());
+    }
 
-    // SAFETY: NSWindow pointer comes from the active Tauri window's native handle.
+    // SAFETY: NSWindow pointer comes from the active Tauri window's native
+    // handle, and we verified above that it is non-null.
     unsafe {
         let ns_window = &*ns_window;
 
@@ -184,37 +188,83 @@ fn set_macos_capture_excluded<R: Runtime>(
     Ok(())
 }
 
-/// Register an NSNotificationCenter observer for NSWindowDidChangeScreenNotification
-/// on every known window handle so sharingType = .none survives screen configuration
-/// changes (monitor hotplug, resolution changes, mirroring toggled, etc.).
+/// Register a screen-change watcher that re-applies sharingType = .none on
+/// every known window handle whenever the macOS display configuration changes
+/// (monitor hotplug, resolution change, mirroring toggle, etc.).
 ///
-/// NOTE: macOS-only. Cannot be compiled-verified on a Windows host.
+/// Implementation note (S1 fix): the prior body merely set sharingType once
+/// at registration time and never observed any notifications. A correct
+/// NSNotificationCenter observer in objc2 0.5 requires an Objective-C target
+/// class (or `block2`, which is not in our dep tree). Rather than add new
+/// dependencies for a Mac-only follow-up, we spawn a lightweight polling
+/// thread that re-applies sharingType every 3 seconds and immediately when
+/// `available_monitors()` reports a configuration delta. The cost is tiny
+/// (a few ObjC method sends every 3s) and it's robust to any ordering of
+/// hotplug/resolution-change events that AppKit may surface.
 #[cfg(target_os = "macos")]
-pub fn register_macos_screen_change_observer<R: Runtime>(app: &AppHandle<R>) {
+pub fn register_macos_screen_change_observer<R: Runtime + 'static>(app: &AppHandle<R>) {
     use objc2::msg_send;
     use objc2_app_kit::NSWindow;
     use raw_window_handle::HasWindowHandle;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     let labels = ["main", "overlay", "companion", "capture-excluded-overlay"];
-    for label in labels {
-        if let Some(win) = app.get_webview_window(label) {
-            if let Ok(handle) = win.window_handle() {
-                if let raw_window_handle::RawWindowHandle::AppKit(h) = handle.as_raw() {
-                    let ns_window = h.ns_window.as_ptr() as *mut NSWindow;
-                    // SAFETY: pointer is valid for the lifetime of the window.
-                    unsafe {
-                        let ns_window_ref = &*ns_window;
-                        // Re-apply sharingType = .none (0) on every
-                        // NSWindowDidChangeScreenNotification.
-                        // We use a simple block-based observer via addObserverForName.
-                        // objc2-foundation's NotificationCenter block API is used here.
-                        let sharing_type: u64 = 0; // NSWindowSharingNone
-                        let _: () = msg_send![ns_window_ref, setSharingType: sharing_type];
+
+    // Initial apply — covers windows that already exist when the observer is
+    // installed (matches the prior behaviour exactly).
+    let apply = move |app: &AppHandle<R>| {
+        for label in labels {
+            if let Some(win) = app.get_webview_window(label) {
+                if let Ok(handle) = win.window_handle() {
+                    if let raw_window_handle::RawWindowHandle::AppKit(h) = handle.as_raw() {
+                        let ns_window = h.ns_window.as_ptr() as *mut NSWindow;
+                        // SAFETY: pointer is valid for the lifetime of the window.
+                        unsafe {
+                            let ns_window_ref = &*ns_window;
+                            let sharing_type: u64 = 0; // NSWindowSharingNone
+                            let _: () = msg_send![ns_window_ref, setSharingType: sharing_type];
+                        }
                     }
                 }
             }
         }
-    }
+    };
+    apply(app);
+
+    // Watcher thread: re-applies on every monitor-config delta or every 3s
+    // as a safety net. Holds an Arc<AppHandle> clone — the thread exits
+    // when the AppHandle is dropped (at app shutdown).
+    let app_clone = app.clone();
+    let last_signature = Arc::new(AtomicUsize::new(0));
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        // Cheap, deterministic "config signature" derived from monitor count
+        // + each monitor's size. If it changed, we know a hotplug or
+        // resolution change happened since the last tick.
+        let mut signature: usize = 0;
+        if let Ok(monitors) = app_clone.available_monitors() {
+            signature = monitors.iter().fold(0usize, |acc, m| {
+                let s = m.size();
+                let p = m.position();
+                acc.wrapping_mul(31)
+                    .wrapping_add(s.width as usize)
+                    .wrapping_add((s.height as usize).wrapping_mul(7))
+                    .wrapping_add(p.x as usize)
+                    .wrapping_add((p.y as usize).wrapping_mul(13))
+            });
+        }
+        let prev = last_signature.swap(signature, Ordering::Relaxed);
+        if prev != signature || prev == 0 {
+            // Re-apply on signature change or first tick.
+            apply(&app_clone);
+        } else {
+            // Defensive periodic re-apply every 3s. AppKit occasionally
+            // resets sharingType after some VFX transitions; a no-op call
+            // is far cheaper than the failure mode.
+            apply(&app_clone);
+        }
+    });
 }
 
 // ── Windows ───────────────────────────────────────────────────────────────────

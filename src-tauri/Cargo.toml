@@ -25,6 +25,7 @@ tauri = { version = "2.10.3", features = ["tray-icon"] }
 tauri-plugin-log = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
 rusqlite = { version = "0.32", features = ["bundled"] }
 aes-gcm = "0.10"
 hex = "0.4"
@@ -35,6 +36,21 @@ base64 = "0.22"
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 screenshots = "0.8"
 rand = "0.8"
+
+# Local Whisper STT (Gap 1). Optional because building whisper.cpp pulls a
+# C++ toolchain plus libclang for bindgen. Enable with:
+#   cargo build --features local-whisper
+# Toolchain prerequisites by platform:
+#   Windows: Visual Studio 2022 Build Tools (MSVC) + LLVM (clang) on PATH,
+#            with LIBCLANG_PATH set to its `bin` dir. winget install LLVM.LLVM
+#   macOS:   xcode-select --install; libclang ships with the toolchain.
+#   Linux:   apt install build-essential clang libclang-dev cmake
+# Distributors who don't want the native C++ build can ship without this and
+# fall back to cloud STT (Groq) — the runtime detects model availability
+# at startup via `check_local_stt_available()` and `LocalSttProvider`
+# transparently routes to the cloud path until the user installs a model.
+whisper-rs = { version = "0.16", optional = true }
+dirs = "5"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.5"
@@ -52,8 +68,19 @@ windows = { version = "0.61", features = [
   "Win32_System_Com",
   "Win32_System_Com_StructuredStorage",
   "Win32_Media_KernelStreaming",
+  # Native OCR via Windows.Media.Ocr (built into Windows 10+).
+  "Foundation",
+  "Foundation_Collections",
+  "Globalization",
+  "Graphics_Imaging",
+  "Media_Ocr",
+  "Storage_Streams",
 ] }
 raw-window-handle = "0.6"
+
+[features]
+default = []
+local-whisper = ["dep:whisper-rs"]
 
 [profile.release]
 lto = "fat"

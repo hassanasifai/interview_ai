@@ -1,5 +1,6 @@
 import type { AIProvider } from '../providers/aiProvider';
 import type { JdAnalysis } from '../../store/settingsStore';
+import { tryParseJson } from './jsonRepair';
 
 const SYSTEM_PROMPT = `You are an expert talent acquisition specialist and resume coach.
 Extract structured information from a job description.
@@ -16,7 +17,7 @@ export async function analyzeJobDescription(
       systemPrompt: SYSTEM_PROMPT,
       userPrompt: `Job description:\n${jdText}`,
     });
-    const parsed = JSON.parse(response) as Partial<JdAnalysis>;
+    const parsed = tryParseJson<Partial<JdAnalysis>>(response) ?? ({} as Partial<JdAnalysis>);
     return {
       requiredSkills: Array.isArray(parsed.requiredSkills) ? parsed.requiredSkills : [],
       niceToHaveSkills: Array.isArray(parsed.niceToHaveSkills) ? parsed.niceToHaveSkills : [],

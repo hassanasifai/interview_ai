@@ -20,6 +20,8 @@ import { evaluateShareGuard, type ShareMode } from '../../lib/runtime/shareGuard
 import { listAuditEvents } from '../../lib/runtime/auditEvents';
 import { appendAuditEvent } from '../../lib/runtime/auditEvents';
 import { getRuntimeConfig } from '../../lib/runtime/appConfig';
+import { logger } from '../../lib/logger';
+import { MissingApiKeyError } from '../../lib/providers/contracts';
 import { useSessionStore } from '../../store/sessionStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { Badge, Button, Card, ScrollArea, StatusDot, Tooltip, useToast } from '../../components/ui';
@@ -126,7 +128,7 @@ export function OperationsPage() {
 
   const { show: showToast } = useToast();
   // Selector hooks (I21/I22) — avoid whole-store reads.
-  const startSession = useSessionStore((state) => state.startSession);
+  const startLiveCaptureSession = useSessionStore((state) => state.startLiveCaptureSession);
   const autoHideOnFullScreenShare = useSettingsStore((s) => s.autoHideOnFullScreenShare);
   const preferSecondScreen = useSettingsStore((s) => s.preferSecondScreen);
   const hasSecondScreen = useSettingsStore((s) => s.hasSecondScreen);
@@ -500,7 +502,15 @@ export function OperationsPage() {
             <Button
               variant="secondary"
               disabled={!detection.isMeetingCandidate}
-              onClick={startSession}
+              onClick={() => {
+                startLiveCaptureSession(true).catch((err) => {
+                  if (err instanceof MissingApiKeyError) {
+                    // toast already fires from §5 listener; nothing to do
+                    return;
+                  }
+                  logger.warn('operations', 'start live capture failed', { err: String(err) });
+                });
+              }}
             >
               Confirm and start session
             </Button>

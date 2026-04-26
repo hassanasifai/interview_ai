@@ -67,16 +67,14 @@ type OverlayTab = 'answer' | 'chat' | 'transcript';
 
 const SHARE_GUARD_REVIEW_EVENT = 'meetingmind:share-guard-review';
 
+// LOW 22 fix: read from the shared hotkey catalog instead of redefining
+// here. We keep the local name `HOTKEY_ROWS` for callers below, plus a
+// non-catalog "Command palette" Ctrl+K row that's only meaningful in the
+// overlay UI (it doesn't fire a global shortcut, so it stays inline).
+import { HOTKEY_ROWS as SHARED_HOTKEY_ROWS } from '../../lib/hotkeyCatalog';
 const HOTKEY_ROWS: Array<{ label: string; keys: string[] }> = [
-  { label: 'Screenshot + solve', keys: ['Ctrl', 'Shift', 'S'] },
-  { label: 'Copy answer', keys: ['Ctrl', 'Shift', 'C'] },
-  { label: 'Toggle click-through', keys: ['Ctrl', 'Shift', 'T'] },
-  { label: 'Scroll up', keys: ['Ctrl', 'Shift', '↑'] },
-  { label: 'Scroll down', keys: ['Ctrl', 'Shift', '↓'] },
+  ...SHARED_HOTKEY_ROWS.dashboard.map((row) => ({ label: row.label, keys: row.keys })),
   { label: 'Command palette', keys: ['Ctrl', 'K'] },
-  { label: 'Generate answer', keys: ['Ctrl', 'Shift', 'Enter'] },
-  { label: 'Next suggestion', keys: ['Ctrl', 'Shift', 'N'] },
-  { label: 'Dismiss overlay', keys: ['Escape'] },
 ];
 
 // Chips shown inline in the command bar (most used shortcuts)
@@ -191,7 +189,11 @@ export function OverlayWindow() {
     window.addEventListener('mm:audio-level', onDom);
     listenTauriEvent<{ level: number }>('mm:audio-level', (payload) => {
       onLevel(payload.level);
-    }).then((u) => { unlistenTauri = u; }).catch(() => undefined);
+    })
+      .then((u) => {
+        unlistenTauri = u;
+      })
+      .catch(() => undefined);
 
     return () => {
       window.removeEventListener('mm:audio-level', onDom);
@@ -824,8 +826,16 @@ export function OverlayWindow() {
                     padding: 'var(--space-6) var(--space-3)',
                   }}
                 >
-                  <Mic size={28} aria-hidden color="var(--accent-gold)" className={audioActive ? 'mic-active' : ''} />
-                  <div className={cn('audio-bars', audioActive && 'audio-bars--active')} aria-hidden>
+                  <Mic
+                    size={28}
+                    aria-hidden
+                    color="var(--accent-gold)"
+                    className={audioActive ? 'mic-active' : ''}
+                  />
+                  <div
+                    className={cn('audio-bars', audioActive && 'audio-bars--active')}
+                    aria-hidden
+                  >
                     <span />
                     <span />
                     <span />
